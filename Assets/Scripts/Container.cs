@@ -11,7 +11,7 @@ public class Container : MonoBehaviour
     public Vector3 position;
     public MeshFilter meshFilter;
     public MeshRenderer meshRenderer;
-    public MeshCollider meshCollider;
+    //public MeshCollider meshCollider;
 
     public Dictionary<Vector3, Voxel> data;
     public MeshData meshData = new MeshData();
@@ -28,7 +28,7 @@ public class Container : MonoBehaviour
     {
         meshFilter = GetComponent<MeshFilter>();
         meshRenderer = GetComponent<MeshRenderer>();
-        meshCollider = GetComponent<MeshCollider>();
+        //meshCollider = GetComponent<MeshCollider>();
     }
 
     public void ClearData()
@@ -99,10 +99,10 @@ public class Container : MonoBehaviour
         }
 
         meshFilter.mesh = meshData.mesh;
-        if(meshData.vertices.Count > 3)
+        /*if(meshData.vertices.Count > 3)
         {
             meshCollider.sharedMesh = meshData.mesh;
-        }
+        }*/
 
     }
 

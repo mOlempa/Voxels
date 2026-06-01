@@ -1,0 +1,103 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a147ee174ac0df44f840182e32131490, type: 3}
+  m_Name: Test 1 Grammar
+  m_EditorClassIdentifier: 
+  rootSentence: AF(0,1.5)
+  alphabet:
+  - name: F
+    symbol: 70
+    action: 1
+    successors:
+      _serializedList:
+      - Key: FFF[x+F][~-F]
+        Value: 1
+    parameters:
+      _serializedList:
+      - Key: 0
+        Value:
+          rules: []
+      - Key: 1
+        Value:
+          rules:
+          - name: p1 < 2  -->  F(+1,+1)
+            logicOperator: 3
+            comparedVariable: 2
+            comparedVariableInt: 2
+            successor: F(+1,+1)
+          - name: p1 >= 2  -->  S(0)
+            logicOperator: 2
+            comparedVariable: 2
+            comparedVariableInt: 2
+            successor: S(0)
+  - name: S
+    symbol: 83
+    action: 1
+    successors:
+      _serializedList: []
+    parameters:
+      _serializedList:
+      - Key: 0
+        Value:
+          rules:
+          - name: p0 < 2  -->  S(+1)
+            logicOperator: 3
+            comparedVariable: 2
+            comparedVariableInt: 2
+            successor: S(+1)
+          - name: p0 >= 2  -->  A
+            logicOperator: 2
+            comparedVariable: 2
+            comparedVariableInt: 2
+            successor: A
+  - name: +
+    symbol: 43
+    action: 3
+    successors:
+      _serializedList: []
+    parameters:
+      _serializedList: []
+  - name: x
+    symbol: 120
+    action: 4
+    successors:
+      _serializedList: []
+    parameters:
+      _serializedList: []
+  - name: '-'
+    symbol: 45
+    action: 2
+    successors:
+      _serializedList: []
+    parameters:
+      _serializedList: []
+  - name: ~
+    symbol: 126
+    action: 5
+    successors:
+      _serializedList: []
+    parameters:
+      _serializedList: []
+  - name: '['
+    symbol: 91
+    action: 6
+    successors:
+      _serializedList: []
+    parameters:
+      _serializedList: []
+  - name: ']'
+    symbol: 93
+    action: 7
+    successors:
+      _serializedList: []
+    parameters:
+      _serializedList: []

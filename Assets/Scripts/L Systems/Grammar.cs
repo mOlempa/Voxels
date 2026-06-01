@@ -1,7 +1,12 @@
 using AYellowpaper.SerializedCollections;
+using JetBrains.Annotations;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
+using Unity.VisualScripting.FullSerializer;
 using UnityEngine;
 
 public enum Action { 
@@ -27,34 +32,22 @@ public class Grammar : ScriptableObject
     [SerializeField]
     public Symbol[] alphabet;
 
+
     public Dictionary<char, Symbol> symbols = new Dictionary<char, Symbol>();
 
-    /*public char[] GetSymbols()
+    public void CompileRules()
     {
-        //string[] letters = new string[alphabet.Length];
-        List<char> letters = new List<char>();
-        foreach(Symbol s in alphabet)
+        foreach (var symbol in alphabet)
         {
-            // get non-repeated symbols
-            if (!letters.Contains(s.symbol))
-                letters.Add(s.symbol);
-        }
-        return letters.ToArray();
-    }*/
-
-    /*public bool IsSymbolConstant(char c)
-    {
-        foreach(Symbol s in alphabet)
-        {
-            if(s.symbol == c)
+            foreach(var par in symbol.parameters.Values)
             {
-                if (s.isConstant) return true;
-                else return false;
+                foreach (var rule in par.rules)
+                {
+                    rule.CompileRule();
+                }
             }
         }
-        // if symbol not found in the alphabet, assume it as constant
-        return true;
-    }*/
+    }
 
     public bool AlphabetContainsSymbol(char c, out Symbol symbol)
     {
@@ -93,6 +86,25 @@ public class Grammar : ScriptableObject
         }
     }
 
+    public string GetLogicOperatorSign(LogicOperator op)
+    {
+        switch (op)
+        {
+            case LogicOperator.EqualTo:
+                return "=";
+            case LogicOperator.BiggerThan:
+                return ">";
+            case LogicOperator.LessThan:
+                return "<";
+            case LogicOperator.BiggerOrEqualTo:
+                return ">=";
+            case LogicOperator.LessOrEqualTo:
+                return "<=";
+            default:
+                return "=";
+        }
+    }
+
 #if UNITY_EDITOR
     private void OnValidate()
     {
@@ -102,6 +114,22 @@ public class Grammar : ScriptableObject
             {
                 alphabet[i].name = alphabet[i].symbol.ToString();
                 UpdateSymbolDictionary();
+
+                if (alphabet[i].parameters != null)
+                {
+                    foreach (var p in alphabet[i].parameters)
+                    {
+                        if (p.Value.rules != null)
+                        {
+                            for (int j = 0; j < p.Value.rules.Count(); j++)
+                            {
+
+                                p.Value.rules[j].name = p.Key + " " + GetLogicOperatorSign(p.Value.rules[j].logicOperator) 
+                                    + " " + p.Value.rules[j].comparedVariable + "  -->  " + p.Value.rules[j].successor;
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -115,15 +143,36 @@ public struct Symbol
 
     [SerializeField] public char symbol;
     [SerializeField] public Action action;
-    //[SerializeField] public string[] successors;   // if results length is 0, the symbol is constant
+    //[SerializeField] public Parameter[] parameters;
     [SerializedDictionary("Successor", "Probability")]
-    public SerializedDictionary<string, int> successors; // if results length is 0, the symbol is constant
+    public SerializedDictionary<string, int> successors;
+
+    //[SerializeField] public string[] successors;   // if results length is 0, the symbol is constant
+    [SerializedDictionary("Name", "Properties")]
+    public SerializedDictionary<ParamName, Parameter> parameters;
+
+    public bool isParametrized
+    {
+        get
+        {
+            if (parameters == null || parameters.Count() == 0)
+                return false;
+            else 
+                return true;
+        }
+    }
 
     public bool isConstant
     {
         get
         {
-            return (successors == null ? true : successors.Count() == 0);
+            if (!isParametrized && (successors == null || successors.Count() == 0))
+                return true;
+            else
+                return false;
         }
     }
+
 }
+
+

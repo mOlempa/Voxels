@@ -39,7 +39,7 @@ public class WorldManager : MonoBehaviour
 
         string sentence = lSystemGenerator.GenerateSentence();
         // Vector3[] positions = lSystemGenerator.ConvertSentenceToPositions(sentence);
-
+        return;
         //List<Vector3Int> points = GenerateLine(pointA, pointB);
         List<Segment> segments = lSystemGenerator.ConvertSentenceToSegments(sentence);
 

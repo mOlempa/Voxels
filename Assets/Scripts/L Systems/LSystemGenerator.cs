@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using Unity.VisualScripting;
@@ -51,6 +52,8 @@ public class LSystemGenerator : MonoBehaviour
         }
 
         grammar.UpdateSymbolDictionary();
+        grammar.CompileRules();
+
 
         if (word == null) word = grammar.rootSentence;
         StringBuilder newWord = new StringBuilder();
@@ -59,25 +62,53 @@ public class LSystemGenerator : MonoBehaviour
         {
             print("Iteration index: " + i + ", word: " + word);
             newWord.Clear();
+
+            bool symbolIsParameterized = false;
+            Symbol parameterizedSymbol = new Symbol();
+            string parameters = "";
+
             foreach (char c in word)
             {
-                Symbol symbol;
-
-                // If the alphabet does not contain the symbol or the character is constant (no rule is applied to it),
-                // just rewrite the character as is
-                if (!grammar.AlphabetContainsSymbol(c, out symbol) || symbol.isConstant)
+                // If we are in the parenthesis of the parameterized symbol, process the parameters
+                if (symbolIsParameterized)
                 {
-                    newWord.Append(c);
+                    // If the parenthesis just closed, finish processing parameters
+                    if (c == ')')
+                    {
+                        // PROCESSING PARAMETERS
+                        newWord.Append(HandleParameters(parameterizedSymbol, parameters));
+                        symbolIsParameterized = false;
+                        continue;
+                    }
+
+                    if(c != '(') parameters += c;
                     continue;
                 }
 
-                // Apply each rule to the character
+                // Check if the character is parameterized or constant
+                Symbol symbol;
+                if (!grammar.AlphabetContainsSymbol(c, out symbol))
+                {
+                    // If the alphabet does not contain the symbol or the character is constant (no rule is applied to it),
+                    // just rewrite the character as is
+                    if (symbol.isConstant)
+                    {
+                        newWord.Append(c);
+                        continue;
+                    }
+                }
+
+                // If the symbol is parameterized
+                if (symbol.isParametrized)
+                {
+                    symbolIsParameterized = true;
+                    parameterizedSymbol = symbol;
+                    continue;
+                }
+
+
+                //Apply a rule from the list
                 print("Applying rule to " + c);
-
-                //Appy a (random if multiple) rule from the list
-
-                //newWord.Append(symbol.successors[UnityEngine.Random.Range(0, symbol.successors.Length)]);
-                
                 newWord.Append(GetWeightedRandomSuccessor(symbol));
 
             }
@@ -89,6 +120,51 @@ public class LSystemGenerator : MonoBehaviour
         return word;
 
         //return GrowRecursive(word);
+    }
+
+    public string HandleParameters(Symbol symbol, string paramStr)
+    {
+        string result = "";
+        string numberStr = "";
+        List<float> extractedParams = new List<float>();
+        print("Param string: " + paramStr);
+
+        foreach(char c in paramStr)
+        {
+            //print("CHAR " + c);
+            if(c == ',')
+            {
+                float.TryParse(numberStr.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out float value);
+                extractedParams.Add(value);
+                //print("Added " + value + " to extracted params");
+                numberStr = "";
+                continue;
+            }
+            numberStr += c;
+            /*if (int.TryParse(c.ToString(), out int vasffd) || c == '.')
+            {
+                numberStr += c;
+                //parameterizedSymbol.parameters[paramIndex]
+            }*/
+        }
+
+        float.TryParse(numberStr.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out float v);
+        extractedParams.Add(v);
+        //print("Added " + v + " to extracted params");
+
+        foreach (ParamName name in symbol.parameters.Keys)
+        {
+            //print("Param name: " + name);
+            foreach (ParameterizedRule rule in symbol.parameters[name].rules)
+            {
+                // check condition
+                if (rule.CompareParameter(extractedParams[(int)name]))
+                {
+                    result = rule.EvaluateSuccessor(extractedParams);
+                }
+            }
+        }
+        return result;
     }
 
     public string GetWeightedRandomSuccessor(Symbol symbol)
@@ -139,9 +215,6 @@ public class LSystemGenerator : MonoBehaviour
     }
 
 
-
-    int lineLength = 4;
-    int angle = 30;
 
     public int maxLength = 5;
     public int minLength = 3;
