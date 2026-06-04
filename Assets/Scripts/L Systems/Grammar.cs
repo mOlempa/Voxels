@@ -33,52 +33,142 @@ public class Grammar : ScriptableObject
     public Symbol[] alphabet;
 
 
+    [SerializeField]
+    public Rule[] rules;
+
     public Dictionary<char, Symbol> symbols = new Dictionary<char, Symbol>();
 
-    public void CompileRules()
+    public void CompileGrammar()
     {
-        foreach (var symbol in alphabet)
+        UpdateSymbolDictionary();
+        foreach(var rule in rules)
         {
-            foreach(var par in symbol.parameters.Values)
+            rule.ReadParameterRule();
+            rule.CompileRule();
+        }
+
+        /*foreach (var symbol in alphabet)
+        {
+            foreach(var par in symbol.parameters)
             {
                 foreach (var rule in par.rules)
                 {
-                    rule.CompileRule();
+                    rule.CompileRule(alphabet);
                 }
             }
-        }
+            foreach(var s in symbol.stringSuccessors)
+            {
+                Debug.Log("Symbol successor detected: " + s.Key);
+                symbol.successors.Add(ConvertStringToSymbols(s.Key), s.Value);
+            }
+        }*/
     }
 
+    public List<Symbol> ConvertStringToSymbols(string str)
+    {
+        List<Symbol> wordSymbols = new List<Symbol>();
+
+        bool symbolIsParameterized = false;
+        string paramStr = "";
+
+        foreach (char c in str)
+        {
+            // PROCESSING PARAMETERS (if specified by previous loop iteration)
+            if (symbolIsParameterized)
+            {
+                // If the brackets just closed, finish processing parameters
+                if (c == ')')
+                {
+                    // Create a new symbol that is parameterized
+                    Symbol newSymbol = new Symbol(wordSymbols.Last().character, GetParamsFromString(paramStr));
+
+                    // Remove symbol that was last added to the list and add the new parameterized one
+                    wordSymbols.RemoveAt(wordSymbols.Count - 1);
+                    wordSymbols.Add(newSymbol);
+
+                    // End processing parameters' part
+                    symbolIsParameterized = false;
+                    paramStr = "";
+                    continue;
+                }
+
+                // Add every character after opening bracket to the string (except the closing bracket)
+                if (c != '(') paramStr += c;
+
+                continue;
+            }
+
+            AlphabetContainsSymbol(c, out Symbol symbol);
+
+            if (c == '(')
+            {
+                symbolIsParameterized = true;
+                continue;
+            }
+
+            wordSymbols.Add(symbol);
+        }
+
+        return wordSymbols;
+    }
+
+    private float[] GetParamsFromString(string paramStr)
+    {
+        string numberStr = "";
+        List<float> extractedParams = new List<float>();
+
+        foreach (char c in paramStr)
+        {
+            //print("CHAR " + c);
+            if (c == ',')
+            {
+                float.TryParse(numberStr.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out float value);
+                extractedParams.Add(value);
+                //print("Added " + value + " to extracted params");
+                numberStr = "";
+                continue;
+            }
+            numberStr += c;
+        }
+
+        float.TryParse(numberStr.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out float v);
+        extractedParams.Add(v);
+        return extractedParams.ToArray();
+    }
+
+
+    // If true, returns the copy of the symbol
     public bool AlphabetContainsSymbol(char c, out Symbol symbol)
     {
         foreach (Symbol s in alphabet)
         {
-            if (s.symbol == c)
+            if (s.character == c)
             {
                 symbol = s;
                 return true;
             }
         }
-        symbol = new Symbol();
+        symbol = new Symbol(c);
         return false;
     }
 
     public void UpdateSymbolDictionary()
     {
-        foreach(var s in alphabet)
+        foreach(Symbol s in alphabet)
         {
-            if (symbols.ContainsKey(s.symbol))
-                symbols[s.symbol] = s;
+            if (symbols.ContainsKey(s.character))
+                symbols[s.character] = s;
             else
-                symbols.Add(s.symbol, s);
+                symbols.Add(s.character, s);
+            //s.AttachToGrammar(this);
         }
     }
 
-    public Action GetSymbolAction(char c)
+    public Action GetSymbolAction(Symbol symbol)
     {
-        if (symbols.ContainsKey(c))
+        if (symbols.ContainsKey(symbol.character))
         {
-            return symbols[c].action;
+            return symbols[symbol.character].action;
         }
         else
         {
@@ -112,67 +202,44 @@ public class Grammar : ScriptableObject
         {
             for (int i = 0; i < alphabet.Length; i++)
             {
-                alphabet[i].name = alphabet[i].symbol.ToString();
+                alphabet[i].name = alphabet[i].character.ToString();
                 UpdateSymbolDictionary();
 
-                if (alphabet[i].parameters != null)
-                {
-                    foreach (var p in alphabet[i].parameters)
-                    {
-                        if (p.Value.rules != null)
-                        {
-                            for (int j = 0; j < p.Value.rules.Count(); j++)
-                            {
+            }
+        }
+    }
+#endif
 
-                                p.Value.rules[j].name = p.Key + " " + GetLogicOperatorSign(p.Value.rules[j].logicOperator) 
-                                    + " " + p.Value.rules[j].comparedVariable + "  -->  " + p.Value.rules[j].successor;
+    /*#if UNITY_EDITOR
+        private void OnValidate()
+        {
+            if (alphabet != null)
+            {
+                for (int i = 0; i < alphabet.Length; i++)
+                {
+                    alphabet[i].name = alphabet[i].character.ToString();
+                    UpdateSymbolDictionary();
+
+                    if (alphabet[i].parameters != null)
+                    {
+                        foreach (var p in alphabet[i].parameters)
+                        {
+                            if (p.rules != null)
+                            {
+                                for (int j = 0; j < p.rules.Count(); j++)
+                                {
+
+                                    p.rules[j].name = p.name + " " + GetLogicOperatorSign(p.rules[j].logicOperator) 
+                                        + " " + p.rules[j].comparedVariable + "  -->  " + p.rules[j].successorStr;
+                                }
                             }
                         }
                     }
                 }
             }
         }
-    }
-#endif
+    #endif*/
 }
 
-[Serializable]
-public struct Symbol
-{
-    [HideInInspector] public string name;
-
-    [SerializeField] public char symbol;
-    [SerializeField] public Action action;
-    //[SerializeField] public Parameter[] parameters;
-    [SerializedDictionary("Successor", "Probability")]
-    public SerializedDictionary<string, int> successors;
-
-    //[SerializeField] public string[] successors;   // if results length is 0, the symbol is constant
-    [SerializedDictionary("Name", "Properties")]
-    public SerializedDictionary<ParamName, Parameter> parameters;
-
-    public bool isParametrized
-    {
-        get
-        {
-            if (parameters == null || parameters.Count() == 0)
-                return false;
-            else 
-                return true;
-        }
-    }
-
-    public bool isConstant
-    {
-        get
-        {
-            if (!isParametrized && (successors == null || successors.Count() == 0))
-                return true;
-            else
-                return false;
-        }
-    }
-
-}
 
 
