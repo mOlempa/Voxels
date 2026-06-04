@@ -176,7 +176,7 @@ public class Grammar : ScriptableObject
         }
     }
 
-    public string GetLogicOperatorSign(LogicOperator op)
+    /*public string GetLogicOperatorSign(LogicOperator op)
     {
         switch (op)
         {
@@ -193,7 +193,7 @@ public class Grammar : ScriptableObject
             default:
                 return "=";
         }
-    }
+    }*/
 
 #if UNITY_EDITOR
     private void OnValidate()

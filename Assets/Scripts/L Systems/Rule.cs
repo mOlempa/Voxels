@@ -178,7 +178,6 @@ public class Rule
     {
         bool skipCharacters = false;
         Successor successor = new Successor(probability, predecessor[0]);
-        int paramLength = 0;
         foreach (char c in pattern)
         {
             //Debug.Log("CHAR " + c);
