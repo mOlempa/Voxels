@@ -43,7 +43,7 @@ public class Grammar : ScriptableObject
         UpdateSymbolDictionary();
         foreach(var rule in rules)
         {
-            rule.ReadParameterRule();
+            rule.ReadCondition();
             rule.CompileRule();
         }
 

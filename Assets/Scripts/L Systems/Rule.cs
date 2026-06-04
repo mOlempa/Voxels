@@ -61,7 +61,7 @@ public class Rule
     public string context;
 
     [Tooltip("If parametric, add comparison rule with parameter name, e.g. 'x < 2'")]
-    public string parameterRule = "";
+    public string paramCondition = "";
 
     // A successor dictionary for UI
     [Tooltip("e.g., 'F[+F]' or 'A(x*2, y+1)'")]
@@ -75,13 +75,13 @@ public class Rule
     //private List<Func<float, float>> compiledOperations = new List<Func<float, float>> ();
 
     // Possibly make it a list, might do multiple parameter comparison rules later but idk
-    private (int index, Func<float, bool> func) compiledComparison;    // comparison with parameter index
+    private (int index, Func<float, bool> func) compiledCondition;    // comparison with parameter index
 
 
     public void CompileRule()
     {
         successors = new List<Successor>();
-        ReadParameterRule();
+        ReadCondition();
         foreach(var s in userSuccessors)
         {
             CompileSuccessor(s.Key, s.Value);
@@ -122,21 +122,21 @@ public class Rule
         return -1;
     }
 
-    public void ReadParameterRule()
+    public void ReadCondition()
     {
-        if(parameterRule.Length > 0)
+        if(paramCondition.Length > 0)
         {
             // Remove any white spaces from the rule
-            parameterRule = Regex.Replace(parameterRule, @"\s+", "");
+            paramCondition = Regex.Replace(paramCondition, @"\s+", "");
             predecessor = Regex.Replace(predecessor, @"\s+", "");
 
             // Read the first character as the parameter name and find the index of the parameter
-            int index = GetParamIndex(predecessor, parameterRule[0].ToString());
-            compiledComparison.index = index;
+            int index = GetParamIndex(predecessor, paramCondition[0].ToString());
+            compiledCondition.index = index;
 
             // Create a Func<float, bool> comparing parameter to read value
-            Match match = Regex.Match(parameterRule, @">=|<=|=|>|<|==");
-            Match matchNumber = Regex.Match(parameterRule, @"(\d+)");
+            Match match = Regex.Match(paramCondition, @">=|<=|=|>|<|==");
+            Match matchNumber = Regex.Match(paramCondition, @"(\d+)");
             if (!match.Success)
             {
                 Debug.LogError($"No operator comparing parameter given in the parameter rule string! (predecessor {predecessor})");
@@ -151,23 +151,23 @@ public class Rule
             switch (match.Value)
             {
                 case ">":
-                    compiledComparison.func = x => x > value;
+                    compiledCondition.func = x => x > value;
                     break;
                 case "<":
-                    compiledComparison.func = x => x < value;
+                    compiledCondition.func = x => x < value;
                     break;
                 case ">=":
-                    compiledComparison.func = x => x >= value;
+                    compiledCondition.func = x => x >= value;
                     break;
                 case "<=":
-                    compiledComparison.func = x => x <= value;
+                    compiledCondition.func = x => x <= value;
                     break;
                 case "=":
-                    compiledComparison.func = x => x == value;
+                    compiledCondition.func = x => x == value;
                     break;
                 default:
                 case "==":
-                    compiledComparison.func = x => x == value;
+                    compiledCondition.func = x => x == value;
                     break;
             }
 
@@ -338,14 +338,14 @@ public class Rule
         if (symbol.IsParametric)
         {
             //Debug.Log("Symbol has parameters, returning random parametric successor");
-            if (compiledComparison.index > symbol.parameters.Length - 1)
+            if (compiledCondition.index > symbol.parameters.Length - 1)
             {
                 Debug.LogError($"Wrong rule - {predecessor} has not enough parameters!");
                 return new List<Symbol>() { };
             }
             // Get the parameter under index saved with the compiled comparison
             // and compare it to variable saved within comparison to check if the rule applies
-            if (compiledComparison.func(symbol.parameters[compiledComparison.index]))
+            if (compiledCondition.func(symbol.parameters[compiledCondition.index]))
             {
                 // Check probabilities - get weighted random
                 Successor successor = GetWeightedRandomSuccessor();

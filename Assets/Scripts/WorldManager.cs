@@ -10,6 +10,9 @@ public class WorldManager : MonoBehaviour
     [SerializeField]
     public LSystemGenerator lSystemGenerator;
 
+    [SerializeField]
+    public StructureGenerator structureGenerator;
+
     public VoxelColor[] worldColors;
     public Material worldMaterial;
 
@@ -41,7 +44,7 @@ public class WorldManager : MonoBehaviour
         List<Symbol> sentence = lSystemGenerator.GenerateSentence();
         
         //List<Vector3Int> points = GenerateLine(pointA, pointB);
-        List<Segment> segments = lSystemGenerator.ConvertSentenceToSegments(sentence);
+        List<Segment> segments = structureGenerator.ConvertSentenceToSegments(sentence);
 
         // generating structure
         foreach (var segment in segments)
@@ -70,6 +73,8 @@ public class WorldManager : MonoBehaviour
 
         transform.Rotate(-90, 0, 0); 
     }
+
+
 
 
     // Generating a line of voxels between two points based on Bresenham 3D algorithm
