@@ -152,6 +152,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   lSystemGenerator: {fileID: 1659058146}
+  structureGenerator: {fileID: 1659058148}
   worldColors:
   - color: {r: 0.7132075, g: 0, b: 0.062137056, a: 0}
     smoothness: 0
@@ -413,6 +414,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1659058147}
   - component: {fileID: 1659058146}
+  - component: {fileID: 1659058148}
   m_Layer: 0
   m_Name: LSystem
   m_TagString: Untagged
@@ -432,14 +434,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 674c5882d7ca282478663dca862dfc7e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  iterationLimit: 5
-  grammar: {fileID: 11400000, guid: f4f0809a2edb5864384f7cddf87bc899, type: 2}
-  maxLength: 8
-  minLength: 6
-  maxAngle: 45
-  minAngle: 30
-  maxThickness: 1
-  startingAngles: {x: 0, y: 0, z: 0}
+  iterationLimit: 4
+  grammar: {fileID: 11400000, guid: a794ec4203a91bb43bcf697cbb4e0094, type: 2}
 --- !u!4 &1659058147
 Transform:
   m_ObjectHideFlags: 0
@@ -455,6 +451,23 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1659058148
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1659058145}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 46294efac7a0bd94abeaa43c8eaead4b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  maxLength: 5
+  minLength: 3
+  maxAngle: 35
+  minAngle: 25
+  maxThickness: 5
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

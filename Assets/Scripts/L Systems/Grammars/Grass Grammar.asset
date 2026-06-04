@@ -15,29 +15,30 @@ MonoBehaviour:
   rootSentence: F
   alphabet:
   - name: F
-    symbol: 70
+    character: 70
     action: 1
-    successors:
+    parameters: []
+  - name: +
+    character: 43
+    action: 3
+    parameters: []
+  - name: '-'
+    character: 45
+    action: 2
+    parameters: []
+  - name: '['
+    character: 91
+    action: 6
+    parameters: []
+  - name: ']'
+    character: 93
+    action: 7
+    parameters: []
+  rules:
+  - predecessor: F
+    context: 
+    paramCondition: 
+    userSuccessors:
       _serializedList:
       - Key: F[+F]F[-F]F
         Value: 1
-  - name: +
-    symbol: 43
-    action: 3
-    successors:
-      _serializedList: []
-  - name: '-'
-    symbol: 45
-    action: 2
-    successors:
-      _serializedList: []
-  - name: '['
-    symbol: 91
-    action: 6
-    successors:
-      _serializedList: []
-  - name: ']'
-    symbol: 93
-    action: 7
-    successors:
-      _serializedList: []
