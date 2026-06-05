@@ -21,6 +21,11 @@ public enum Action {
     EndBranch
 }
 
+/*public enum ParamRole
+{
+
+}*/
+
 
 [CreateAssetMenu(menuName = "LSystems/Grammar")]
 [ExecuteInEditMode]
@@ -30,8 +35,10 @@ public class Grammar : ScriptableObject
     public string rootSentence;
 
     [SerializeField]
-    public Symbol[] alphabet;
+    public Symbol[] definedSymbols;
 
+    //[SerializedDictionary("Param Name", "Role")]
+    //public SerializedDictionary<string, ParamRole> parameterRoles;
 
     [SerializeField]
     public Rule[] rules;
@@ -43,7 +50,7 @@ public class Grammar : ScriptableObject
         UpdateSymbolDictionary();
         foreach(var rule in rules)
         {
-            rule.ReadCondition();
+            //rule.ReadCondition();
             rule.CompileRule();
         }
 
@@ -98,7 +105,7 @@ public class Grammar : ScriptableObject
                 continue;
             }
 
-            AlphabetContainsSymbol(c, out Symbol symbol);
+            IsSymbolDefined(c, out Symbol symbol);
 
             if (c == '(')
             {
@@ -138,9 +145,9 @@ public class Grammar : ScriptableObject
 
 
     // If true, returns the copy of the symbol
-    public bool AlphabetContainsSymbol(char c, out Symbol symbol)
+    public bool IsSymbolDefined(char c, out Symbol symbol)
     {
-        foreach (Symbol s in alphabet)
+        foreach (Symbol s in definedSymbols)
         {
             if (s.character == c)
             {
@@ -154,7 +161,7 @@ public class Grammar : ScriptableObject
 
     public void UpdateSymbolDictionary()
     {
-        foreach(Symbol s in alphabet)
+        foreach(Symbol s in definedSymbols)
         {
             if (symbols.ContainsKey(s.character))
                 symbols[s.character] = s;
@@ -198,11 +205,11 @@ public class Grammar : ScriptableObject
 #if UNITY_EDITOR
     private void OnValidate()
     {
-        if (alphabet != null)
+        if (definedSymbols != null)
         {
-            for (int i = 0; i < alphabet.Length; i++)
+            for (int i = 0; i < definedSymbols.Length; i++)
             {
-                alphabet[i].name = alphabet[i].character.ToString();
+                definedSymbols[i].name = definedSymbols[i].character.ToString();
                 UpdateSymbolDictionary();
 
             }

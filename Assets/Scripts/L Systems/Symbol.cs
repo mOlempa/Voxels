@@ -46,6 +46,15 @@ public struct Symbol
         name = _character.ToString();
     }
 
+    public Symbol Clone()
+    {
+        return new Symbol
+        {
+            name = this.name,
+            character = this.character,
+            parameters = parameters != null ? (float[])this.parameters.Clone() : null
+        };
+    }
 
     public string GetSymbolString()
     {

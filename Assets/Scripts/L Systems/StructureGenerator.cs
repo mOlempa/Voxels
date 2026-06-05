@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Unity.VisualScripting;
+using UnityEngine.UIElements;
 
 public struct Node
 {
@@ -32,7 +33,7 @@ public struct Segment
 
 public class StructureGenerator : MonoBehaviour
 {
-    Grammar grammar;
+    [SerializeField] public Grammar grammar;
 
     public int maxLength = 5;
     public int minLength = 3;
@@ -70,6 +71,7 @@ public class StructureGenerator : MonoBehaviour
         {
             Node currentNode;
             int randAngle = UnityEngine.Random.Range(minAngle, maxAngle);
+            int randLength;
             //int randAngle = 30;
             switch (grammar.GetSymbolAction(symbol))
             {
@@ -78,10 +80,13 @@ public class StructureGenerator : MonoBehaviour
                     final += symbol.name;
                     currentNode = stack.Pop();
 
+                    randLength = UnityEngine.Random.Range(minLength, maxLength);
+
+                    InterpretLineParams(symbol, ref randLength, ref currentNode.thickness);
+
                     Segment segment = new Segment() { startPoint = currentNode };
                     segment.thickness = currentNode.thickness;
 
-                    int randLength = UnityEngine.Random.Range(minLength, maxLength);
 
                     currentNode.position = currentNode.position + GetLocalEndpoint(randLength, currentNode.anglesDeg);
 
@@ -95,6 +100,8 @@ public class StructureGenerator : MonoBehaviour
                 case Action.RotateRight:
                     print($"Symbol {symbol.name}, rotating right");
 
+                    InterpretRotationalParams(symbol, ref randAngle);
+
                     final += symbol.name;
                     currentNode = stack.Pop();
                     currentNode.anglesDeg.x += randAngle;
@@ -103,6 +110,8 @@ public class StructureGenerator : MonoBehaviour
 
                 case Action.RotateLeft:
                     print($"Symbol {symbol.name}, rotating left");
+
+                    InterpretRotationalParams(symbol, ref randAngle);
 
                     final += symbol.name;
                     currentNode = stack.Pop();
@@ -163,6 +172,43 @@ public class StructureGenerator : MonoBehaviour
         print(final);
 
         return segments;
+    }
+
+    private void InterpretRotationalParams(Symbol symbol, ref int angle)
+    {
+        if (symbol.IsParametric)
+        {
+            for (int i = 0; i < symbol.parameters.Length; i++)
+            {
+                switch (i)
+                {
+                    default:
+                    case 0:
+                        angle = (int)symbol.parameters[0];
+                        break;
+                }
+            }
+        }
+    }
+
+    private void InterpretLineParams(Symbol symbol, ref int length, ref int width)
+    {
+        if (symbol.IsParametric)
+        {
+            for (int i = 0; i < symbol.parameters.Length; i++)
+            {
+                switch (i)
+                {
+                    default:
+                    case 0:
+                        length = (int)symbol.parameters[0];
+                        break;
+                    case 1:
+                        width = (int)symbol.parameters[1];
+                        break;
+                }
+            }
+        }
     }
 
     public static Vector3Int GetLocalEndpoint(float length, Vector3 eulerAngles)

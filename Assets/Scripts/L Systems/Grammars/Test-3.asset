@@ -10,10 +10,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a147ee174ac0df44f840182e32131490, type: 3}
-  m_Name: Test-2 Grammar
+  m_Name: Test-3
   m_EditorClassIdentifier: 
-  rootSentence: AB
-  alphabet:
+  rootSentence: F(50)-(30)F(40)
+  definedSymbols:
   - name: F
     character: 70
     action: 1
@@ -22,17 +22,9 @@ MonoBehaviour:
     character: 43
     action: 3
     parameters: []
-  - name: x
-    character: 120
-    action: 4
-    parameters: []
   - name: '-'
     character: 45
     action: 2
-    parameters: []
-  - name: ~
-    character: 126
-    action: 5
     parameters: []
   - name: '['
     character: 91
@@ -43,24 +35,10 @@ MonoBehaviour:
     action: 7
     parameters: []
   rules:
-  - predecessor: F(x,y)
-    context: 
-    condition: x < 2
-    userSuccessors:
-      _serializedList:
-      - Key: F(+1, +1)
-        Value: 1
-  - predecessor: F(x)
-    context: 
-    condition: x >= 2
-    userSuccessors:
-      _serializedList:
-      - Key: F(0)
-        Value: 1
-  - predecessor: A
+  - predecessor: -(x)
     context: 
     condition: 
     userSuccessors:
       _serializedList:
-      - Key: AB
+      - Key: -(x)F-(x+10)
         Value: 1

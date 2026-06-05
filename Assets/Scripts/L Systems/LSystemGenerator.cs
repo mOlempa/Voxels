@@ -58,53 +58,41 @@ public class LSystemGenerator : MonoBehaviour
         List<Symbol> word = grammar.ConvertStringToSymbols(startingWord);
         List<Symbol> nextWord = new List<Symbol>();
         string sentence = "";
-
-        print("Starting sentence symbols:");
-        foreach (var s in word)
-        {
-            print($"{s.name}, parametric = {s.IsParametric}");
-        }
-
         for (int i = 0; i < iterationLimit; i++)
         {
             print("Iteration index: " + i + ", word: <color=yellow>" + GetSymbolListString(word) + "</color>");
 
             foreach (Symbol symbol in word)
             {
-                //print("Processing " + symbol.GetSymbolString());
-                List<Symbol> successor = new List<Symbol>();
+                List<Symbol> successorSymbolList = new List<Symbol>();
                 foreach (Rule rule in grammar.rules)
                 {
-                    successor = rule.ApplyRule(symbol);
-                    if (successor.Count > 0)
+                    successorSymbolList = new List<Symbol>(rule.ApplyRule(symbol));
+                    print("Successor: " + GetSymbolListString(successorSymbolList));    
+
+                    if (successorSymbolList.Count > 0)
                     {
-                        /*string str = "";
-                        foreach (Symbol s in successor)
-                        {
-                            str += s.GetSymbolString();
-                        }
-                        print("Successor: " + str);*/
-                        nextWord.AddRange(successor);
+                        nextWord.AddRange(successorSymbolList);
                         break;
                     }
                 }
 
                 // If no successor was determined, the symbol is constant
-                if(successor.Count == 0) nextWord.Add(symbol);
-
+                if(successorSymbolList.Count == 0) nextWord.Add(symbol);
+                print("nextWord: " + GetSymbolListString(nextWord));        // ?
             }
             sentence = "";
             foreach (Symbol symbol in nextWord)
             {
                 sentence += symbol.GetSymbolString();
             }
-            print(sentence);
+            //print(sentence);
             word = new List<Symbol>(nextWord);
             nextWord.Clear();
 
         }
 
-        print("Final sentence: " + sentence);
+        print("Final sentence: <color=yellow>" + sentence + "</color>");
 
         return word;
 
