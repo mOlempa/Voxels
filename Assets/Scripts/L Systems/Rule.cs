@@ -5,79 +5,9 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Unity.VisualScripting;
+using Unity.VisualScripting.Antlr3.Runtime;
 using UnityEngine;
-
-public struct Successor
-{
-    public List<Symbol> symbols;
-    public int probability;
-    // A list cuz there could be multiple parameters, inside a list cuz there could be multiple param symbols in successor
-    public List<List<Func<float, float>>> indexedOperations;
-    [HideInInspector] public char predecessorSymbolChar;
-
-    /*public Successor()
-    {
-        probability = 1;
-        predecessorSymbolChar = '#';
-    }*/
-
-    public Successor(int probability, char symbolChar)
-    {
-        symbols = new List<Symbol>();
-        indexedOperations = new List<List<Func<float, float>>>();
-        this.probability = probability;
-        predecessorSymbolChar = symbolChar;
-    }
-
-    public List<Symbol> ApplyOperations(Symbol refSymbol)
-    {
-        int parametricSymbolOccurrenceIndex = -1;
-        List<Symbol> symbolList = new List<Symbol>();
-        // Go through each symbol in the successor
-        foreach (Symbol symbol in symbols)
-        {
-            // If the rule is for the given symbol
-            if(symbol.character == predecessorSymbolChar)
-            {
-                parametricSymbolOccurrenceIndex++;
-                // Go through each operation (so through each parameter)
-                for (int i = 0; i < indexedOperations[parametricSymbolOccurrenceIndex].Count; i++)
-                {
-                    // Fallback to 0 if the provided list has fewer elements than the rule expects
-                    float currentValue = (i < refSymbol.parameters.Length) ? refSymbol.parameters[i] : 0f;
-
-                    // Execute the pre-compiled lambda function
-                    float result = indexedOperations[parametricSymbolOccurrenceIndex][i](currentValue);
-                    symbol.parameters[i] = result;
-
-                    //Debug.Log($"Executing:  {currentValue} [operation] = {symbol.parameters[i]}");
-                }
-            }
-            symbolList.Add(symbol.Clone());
-        }
-        //Debug.Log(GetSymbolListString(symbolList));
-
-        return new List<Symbol>(symbolList);
-    }
-
-    public List<Symbol> GetSymbolClones()
-    {
-        List<Symbol> result = new List<Symbol>();
-        foreach (Symbol symbol in symbols) result.Add(symbol.Clone());
-        return result;
-    }
-
-    /*private string GetSymbolListString(List<Symbol> list)
-    {
-        string str = "";
-        foreach (Symbol s in list)
-        {
-            str += s.GetSymbolString();
-        }
-        return str;
-    }*/
-
-}
 
 [Serializable]
 public class Rule
@@ -91,7 +21,7 @@ public class Rule
     [Tooltip("If parametric, add comparison rule with parameter name, e.g. 'x < 2'")]
     public string condition = "";
 
-    // A successor dictionary for UI
+    // A successor dictionary for inspector UI
     [Tooltip("e.g., 'F[+F]' or 'A(x*2, y+1)'")]
     [SerializedDictionary("Successor", "Probability")]
     public SerializedDictionary<string, int> userSuccessors;
@@ -102,12 +32,16 @@ public class Rule
     // Possibly make it a list, might do multiple parameter comparison rules later but idk
     private (int index, Func<float, bool> func) compiledCondition;    // comparison with parameter index
 
-    private (char name, float value)[] namedParams;
+    private Dictionary<int, char[]> namedParams;    // saves the names of parameters used at each occurrence of a param symbol in successor
+    private List<(char name, float value)> predecessorParams;   // is for passing the names of predecessor params together with current values
 
 
     public void CompileRule()
     {
         successors = new List<Successor>();
+        namedParams = new Dictionary<int, char[]>();
+        predecessorParams = new List<(char name, float value)>();
+        CompilePredecessor();
         ReadCondition();
         foreach(var s in userSuccessors)
         {
@@ -149,6 +83,21 @@ public class Rule
         return -1;
     }
 
+    public void CompilePredecessor()
+    {
+        int openBracket = predecessor.IndexOf('(');
+        int closeBracket = predecessor.IndexOf(')');
+
+        string argsContent = predecessor.Substring(openBracket + 1, closeBracket - openBracket - 1);
+        string[] tokens = argsContent.Split(',');
+        foreach(string str in tokens)
+        {   
+            // Add parameter names with default value of 0
+            predecessorParams.Add((str[0], 0));
+        }
+
+    }
+
     public void ReadCondition()
     {
         if(condition.Length > 0)
@@ -168,7 +117,7 @@ public class Rule
             {
                 Debug.LogError($"No operator comparing parameter given in the parameter rule string! (predecessor {predecessor})");
             }
-            if (!match.Success)
+            if (!matchNumber.Success)
             {
                 Debug.LogError($"No value to compare parameter given in the parameter rule string! (predecessor {predecessor})");
             }
@@ -220,23 +169,20 @@ public class Rule
             if (c == '(')
             {
                 parametricSymbolOccurrenceIndex++;
-                // Find first opening and first closing bracket
-                /*int openBracket = pattern.IndexOf('(');
-                int closeBracket = pattern.IndexOf(')');*/
-
+                // Find opening and first closing bracket
                 int openBracket = GetNthIndex(pattern, '(', parametricSymbolOccurrenceIndex + 1);
                 int closeBracket = GetNthIndex(pattern, ')', parametricSymbolOccurrenceIndex + 1);
 
-                // Extract the arguments inside the brackets (e.g., "+1,*2")
+                // Extract the arguments inside the brackets (e.g., "x+1,y*2")
                 string argsContent = pattern.Substring(openBracket + 1, closeBracket - openBracket - 1);
                 string[] tokens = argsContent.Split(',');
                 //paramLength = tokens.Length;
-                Symbol s = successor.symbols.Last();
+                Symbol s = successor.successorSymbols.Last();
                 //Debug.Log($"Removing symbol: {s.name}, with no parameters");
-                successor.symbols.RemoveAt(successor.symbols.Count - 1);
+                successor.successorSymbols.RemoveAt(successor.successorSymbols.Count - 1);
                 s.parameters = new float[tokens.Length];
                 //Debug.Log($"Adding new symbol: {s.name}, with {s.parameters.Length} parameters");
-                successor.symbols.Add(s);
+                successor.successorSymbols.Add(s);
 
                 // If the amount of parameters is not correct
                 /*if (tokens.Length != symbol.parameters.Length)
@@ -244,7 +190,11 @@ public class Rule
                     Debug.LogError($"[Evaluator] Invalid pattern, wrong amount of parameters: {pattern}");
                     return;
                 }*/
-                CompileOperations(parametricSymbolOccurrenceIndex, tokens, ref successor);
+
+                CompileOperations(parametricSymbolOccurrenceIndex, tokens, ref successor, out char[] names);
+                //SuccessorParser.ParseParamOperations(tokens, ref successor.indexedOperations, out char[] names);
+
+                namedParams.Add(parametricSymbolOccurrenceIndex, names);
 
                 // Start skipping characters until closing bracket
                 skipCharacters = true;
@@ -254,10 +204,14 @@ public class Rule
             // Create the new symbol and save it
             //Debug.Log($"Adding new symbol: {c}, with {paramLength} parameters");
             Symbol symbol = new Symbol(c);
-            successor.symbols.Add(symbol);
+            successor.successorSymbols.Add(symbol);
         }
         // Add the new successor to the list together with its probability
         successors.Add(successor);
+        foreach(var p in namedParams)
+        {
+            Debug.Log(p.Key + " : " + p.Value.Length);
+        }
     }
 
     public int GetNthIndex(string s, char t, int n)
@@ -277,14 +231,31 @@ public class Rule
         return -1;
     }
 
-    private void CompileOperations(int parametricSymbolOccurrenceIndex, string[] tokens, ref Successor successor)
+    private void CompileOperations(int parametricSymbolOccurrenceIndex, string[] tokens, ref Successor successor, out char[] paramNames)
     {
-        Debug.Log("parametricSymbolOccurrence: " + parametricSymbolOccurrenceIndex);
-        successor.indexedOperations.Add(new List<Func<float, float>>());
+        // Find the single parameter name (the only alphabetical character in the token)
+
+        //Debug.Log("parametricSymbolOccurrence: " + parametricSymbolOccurrenceIndex);
+        successor.indexedOperations.Add(parametricSymbolOccurrenceIndex, new List<Func<float, float>>());
         Debug.Log("successor.indexedOperations.count = " + successor.indexedOperations.Count);
+        List<char> names = new List<char>();
+
         foreach (string token in tokens)
         {
             string trimmed = token.Trim();
+            Debug.Log("Trimmed token 1: " + trimmed);
+
+            // Find the single parameter name (the only alphabetical character in the token)
+            char? paramChar = trimmed.FirstOrDefault(char.IsLetter);
+            if (paramChar == null)
+            {
+                throw new ArgumentException($"Token '{trimmed}' does not contain a valid parameter name.");
+            }
+            names.Add(paramChar.Value);
+            trimmed = token.Trim(paramChar.Value);
+            trimmed = trimmed.Trim();
+            Debug.Log("Trimmed token 2: " + trimmed);
+            Debug.Log("Trimmed length: " + trimmed.Length);
 
             // Compile relative addition: "+1"
             if (trimmed.StartsWith("+"))
@@ -311,7 +282,7 @@ public class Rule
                 successor.indexedOperations[parametricSymbolOccurrenceIndex].Add(x => x / val);
             }
             // Compile no operation on parameter
-            else if (trimmed.StartsWith("="))
+            else if (trimmed.StartsWith("=") || trimmed.Length == 0)
             {
                 successor.indexedOperations[parametricSymbolOccurrenceIndex].Add(x => x);
             }
@@ -322,59 +293,10 @@ public class Rule
                 successor.indexedOperations[parametricSymbolOccurrenceIndex].Add(x => val);
             }
         }
+        paramNames = names.ToArray();
+        Debug.Log("Successor indexed operations length: " + successor.indexedOperations.Count);
     }
 
-    /*public bool ApplyRule(Symbol symbol, out List<Symbol> result)
-    {
-        //List<Symbol> result = new List<Symbol>();
-        // If the first character of the predecessor is not the symbol's character, the rule doesn't apply
-        if (predecessor[0] != symbol.character)
-        {
-            Debug.Log("No rules/successors, returning the symbol");
-            result = new List<Symbol>() { symbol };
-            return false;
-        }
-
-        // If there are parameters
-        if (symbol.IsParametric)
-        {
-            Debug.Log("Symbol has parameters, returning random parametric successor");
-            // Get the parameter under index saved with the compiled comparison
-            // and compare it to variable saved within comparison to check if the rule applies
-            if (compiledComparison.func(symbol.parameters[compiledComparison.index]))
-            {
-                // Check probabilities - get weighted random
-                Successor successor = GetWeightedRandomSuccessor();
-
-                // Go through each successor symbol
-                List<Symbol> evaluatedSuccessor = successor.ApplyOperations(symbol);
-
-                // Return the successor (list of symbols)
-                result = evaluatedSuccessor;
-                return true;
-            }
-            // If the comparison condition does not apply, assume other condition will and return empty list
-            else
-            {
-                result = new List<Symbol>();
-                return false;
-            }
-        }
-        // If there are no parameters, return the weighted random successor
-        else if (successors.Count > 0)
-        {
-            Debug.Log("No parameters, returning random successor");
-            result = GetWeightedRandomSuccessor().symbols;
-            return true;
-        }
-        // If there is no successor, return a new list with just the symbol
-        else
-        {
-            Debug.Log("No successors, returning the symbol");
-            result = new List<Symbol>() { symbol };
-            return true;
-        }
-    }*/
 
     public List<Symbol> ApplyRule(Symbol symbol)
     {
@@ -389,12 +311,18 @@ public class Rule
         // If there are parameters
         if (symbol.IsParametric)
         {
+            // Assign parameter values to parameter names defined by the predecessor
+            for(int i = 0; i < symbol.parameters.Length; i++)
+            {
+                predecessorParams[i] = (predecessorParams[i].name, symbol.parameters[i]);
+            }
+
             if(compiledCondition.func == null)
             {
                 Debug.LogWarning($"No condition set for parametric rule: {predecessor} -> {userSuccessors}");
                 // repeat from IF below
                 Successor successor = GetWeightedRandomSuccessor();
-                List<Symbol> evaluatedSuccessor = successor.ApplyOperations(symbol);
+                List<Symbol> evaluatedSuccessor = successor.ApplyOperations(symbol, namedParams, predecessorParams);
                 return evaluatedSuccessor;
             }
             //Debug.Log("Symbol has parameters, returning random parametric successor");
@@ -411,7 +339,7 @@ public class Rule
                 Successor successor = GetWeightedRandomSuccessor();
 
                 // Apply operations to successor symbols
-                List<Symbol> evaluatedSuccessor = successor.ApplyOperations(symbol);
+                List<Symbol> evaluatedSuccessor = successor.ApplyOperations(symbol, namedParams, predecessorParams);
 
                 // Return the successor (list of symbols)
                 return evaluatedSuccessor;

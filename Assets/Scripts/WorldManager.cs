@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -34,6 +35,31 @@ public class WorldManager : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        /*string[] tokens = { "x-1", "a", "y/2+1", "(1-e)^2", "x*5" };
+        var result = new Dictionary<char, List<Func<float, float>>>();
+        SuccessorParser.ParseParamOperations(tokens, ref result);
+
+        // Let's test evaluating the compiled 'x' functions (x-1 and x*5)
+        if (result.ContainsKey('a'))
+        {
+            print("Evaluating operations for parameter 'x' with input value 10:");
+            foreach (var func in result['a'])
+            {
+                // Output 1: 10 - 1 = 9
+                // Output 2: 10 * 5 = 50
+                print($"Result: {func(5)}");
+            }
+        }
+
+        // Let's test evaluating the 'e' function: (1 - e)^2
+        if (result.ContainsKey('e'))
+        {
+            var eFunc = result['e'].First();
+            print($"\nEvaluating '(1-e)^2' where e = 3: {eFunc(3f)}"); // (1 - 3)^2 = 4
+        }
+        return;*/
+
+
         GameObject cont = new GameObject("Container");
         cont.transform.parent = transform;
         container = cont.AddComponent<Container>();
@@ -42,7 +68,7 @@ public class WorldManager : MonoBehaviour
 
         //string sentence = lSystemGenerator.GenerateSentence();
         List<Symbol> sentence = lSystemGenerator.GenerateSentence();
-        
+        return;
         //List<Vector3Int> points = GenerateLine(pointA, pointB);
         List<Segment> segments = structureGenerator.ConvertSentenceToSegments(sentence);
 

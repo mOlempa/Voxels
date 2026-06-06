@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a147ee174ac0df44f840182e32131490, type: 3}
   m_Name: Test-3
   m_EditorClassIdentifier: 
-  rootSentence: F(50)-(30)F(40)
+  rootSentence: F(1, 0)
   definedSymbols:
   - name: F
     character: 70
@@ -35,10 +35,10 @@ MonoBehaviour:
     action: 7
     parameters: []
   rules:
-  - predecessor: -(x)
+  - predecessor: F(x, y)
     context: 
     condition: 
     userSuccessors:
       _serializedList:
-      - Key: -(x)F-(x+10)
+      - Key: F(x+1, y)
         Value: 1
