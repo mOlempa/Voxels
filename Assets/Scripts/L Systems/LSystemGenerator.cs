@@ -42,6 +42,7 @@ public class LSystemGenerator : MonoBehaviour
     [Range(0, 10)]
     public int iterationLimit = 1;
     public Grammar grammar;
+    public bool enablePrintDebug = false;
 
     public List<Symbol> GenerateSentence(string startingWord = null)
     {
@@ -60,7 +61,7 @@ public class LSystemGenerator : MonoBehaviour
         string sentence = "";
         for (int i = 0; i < iterationLimit; i++)
         {
-            print("Iteration index: " + i + ", word: <color=yellow>" + GetSymbolListString(word) + "</color>");
+            printDebug("Iteration index: " + i + ", word: <color=yellow>" + GetSymbolListString(word) + "</color>");
 
             foreach (Symbol symbol in word)
             {
@@ -68,7 +69,7 @@ public class LSystemGenerator : MonoBehaviour
                 foreach (Rule rule in grammar.rules)
                 {
                     successorSymbolList = new List<Symbol>(rule.ApplyRule(symbol));
-                    print("Successor: " + GetSymbolListString(successorSymbolList));    
+                    printDebug("Successor: " + GetSymbolListString(successorSymbolList));    
 
                     if (successorSymbolList.Count > 0)
                     {
@@ -79,7 +80,7 @@ public class LSystemGenerator : MonoBehaviour
 
                 // If no successor was determined, the symbol is constant
                 if(successorSymbolList.Count == 0) nextWord.Add(symbol);
-                print("nextWord: " + GetSymbolListString(nextWord));        // ?
+                printDebug("nextWord: " + GetSymbolListString(nextWord));        // ?
             }
             sentence = "";
             foreach (Symbol symbol in nextWord)
@@ -92,7 +93,7 @@ public class LSystemGenerator : MonoBehaviour
 
         }
 
-        print("Final sentence: <color=yellow>" + sentence + "</color>");
+        printDebug("Final sentence: <color=yellow>" + sentence + "</color>");
 
         return word;
 
@@ -247,5 +248,8 @@ public class LSystemGenerator : MonoBehaviour
         return Vector3Int.RoundToInt(floatingPointTarget);
     }*/
 
-
+    void printDebug(string str)
+    {
+        if(enablePrintDebug)Debug.Log(str);
+    }
 }

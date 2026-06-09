@@ -60,30 +60,13 @@ public struct Successor
                 {
                     (char name, float value) p = predecessorParams.Find(x => x.name == names[i]);
                     symbol.parameters[i] = indexedOperations[parametricSymbolOccurrenceIndex][i](p.value);
-                    Debug.Log($"Executing:  {p.value} [operation] = {symbol.parameters[i]}");
+                    //Debug.Log($"Executing: {p.name} {p.value} [operation] = {symbol.parameters[i]}");
                 }
             }
             symbolList.Add(symbol.Clone());
         }
 
-        // If the rule is for the given symbol
-        /*if (symbol.character == predecessorSymbolChar)
-        {
-            parametricSymbolOccurrenceIndex++;
-            // Go through each operation (so through each parameter)
-            for (int i = 0; i < indexedOperations[parametricSymbolOccurrenceIndex].Count; i++)
-            {
-                // Fallback to 0 if the provided list has fewer elements than the rule expects
-                float currentValue = (i < currentSymbol.parameters.Length) ? currentSymbol.parameters[i] : 0f;
-
-                // Execute the pre-compiled lambda function
-                float result = indexedOperations[parametricSymbolOccurrenceIndex][i](currentValue);
-                symbol.parameters[i] = result;
-
-                //Debug.Log($"Executing:  {currentValue} [operation] = {symbol.parameters[i]}");
-            }
-        }*/
-        Debug.Log("Evaluated successor: " + GetSymbolListString(symbolList));
+        //Debug.Log("Evaluated successor: " + GetSymbolListString(symbolList));
 
         return new List<Symbol>(symbolList);
     }

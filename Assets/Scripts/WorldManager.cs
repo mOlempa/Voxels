@@ -68,7 +68,7 @@ public class WorldManager : MonoBehaviour
 
         //string sentence = lSystemGenerator.GenerateSentence();
         List<Symbol> sentence = lSystemGenerator.GenerateSentence();
-        return;
+        //return;
         //List<Vector3Int> points = GenerateLine(pointA, pointB);
         List<Segment> segments = structureGenerator.ConvertSentenceToSegments(sentence);
 

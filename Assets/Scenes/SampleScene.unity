@@ -434,8 +434,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 674c5882d7ca282478663dca862dfc7e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  iterationLimit: 2
+  iterationLimit: 7
   grammar: {fileID: 11400000, guid: 800ccbc116ba92248a20091bfdb9ba73, type: 2}
+  enablePrintDebug: 0
 --- !u!4 &1659058147
 Transform:
   m_ObjectHideFlags: 0
@@ -464,6 +465,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   grammar: {fileID: 11400000, guid: 800ccbc116ba92248a20091bfdb9ba73, type: 2}
+  enablePrintDebug: 0
   maxLength: 50
   minLength: 50
   maxAngle: 20

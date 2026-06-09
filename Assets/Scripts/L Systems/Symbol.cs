@@ -63,7 +63,7 @@ public struct Symbol
             string s = name + "(";
             foreach(var p in parameters)
             {
-                s += p;
+                s += p.ToString(new CultureInfo("en-US"));
                 s += ",";
             }
             s = s.Remove(s.Length - 1);
@@ -105,7 +105,7 @@ public struct Symbol
     {
         string numberStr = "";
         List<float> extractedParams = new List<float>();
-        Debug.Log("Param string: " + paramStr);
+        //Debug.Log("Param string: " + paramStr);
 
         foreach (char c in paramStr)
         {

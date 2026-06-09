@@ -34,6 +34,7 @@ public struct Segment
 public class StructureGenerator : MonoBehaviour
 {
     [SerializeField] public Grammar grammar;
+    public bool enablePrintDebug = false;
 
     public int maxLength = 5;
     public int minLength = 3;
@@ -54,8 +55,8 @@ public class StructureGenerator : MonoBehaviour
         List<Segment> segments = new List<Segment>();
         //int currentThickness = maxThickness;
 
-        print($"<color=#FF1100>aaaaa</color>");
-        //print($"<color=#{WorldManager.Instance.worldColors[0].color.ToHexString().TrimEnd("00")}>{WorldManager.Instance.worldColors[0].color.ToHexString()}</color>");
+        printDebug($"<color=#FF1100>aaaaa</color>");
+        //printDebug($"<color=#{WorldManager.Instance.worldColors[0].color.ToHexString().TrimEnd("00")}>{WorldManager.Instance.worldColors[0].color.ToHexString()}</color>");
 
         List<Vector3Int> positions = new List<Vector3Int>
         {
@@ -65,7 +66,7 @@ public class StructureGenerator : MonoBehaviour
         Stack<Node> stack = new Stack<Node>();
         stack.Push(new Node() { position = positions[0], anglesDeg = startingAngles, thickness = maxThickness });
         string final = $"";
-        final += $"<color=#{WorldManager.Instance.worldColors[maxThickness].color.ToHexString().TrimEnd("00")}>";
+        //final += $"<color=#{WorldManager.Instance.worldColors[maxThickness].color.ToHexString().TrimEnd("00")}>";
 
         foreach (var symbol in sentence)
         {
@@ -76,13 +77,13 @@ public class StructureGenerator : MonoBehaviour
             switch (grammar.GetSymbolAction(symbol))
             {
                 case Action.PlaceLine:
-                    print($"Symbol {symbol.name}, placing line");
+                    printDebug($"Symbol {symbol.name}, placing line");
                     final += symbol.name;
                     currentNode = stack.Pop();
 
                     randLength = UnityEngine.Random.Range(minLength, maxLength);
 
-                    InterpretLineParams(symbol, ref randLength, ref currentNode.thickness);
+                    InterpretLineParams(symbol, ref randLength, ref currentNode.thickness);     // does thickness here get changed?
 
                     Segment segment = new Segment() { startPoint = currentNode };
                     segment.thickness = currentNode.thickness;
@@ -98,7 +99,7 @@ public class StructureGenerator : MonoBehaviour
                     break;
 
                 case Action.RotateRight:
-                    print($"Symbol {symbol.name}, rotating right");
+                    printDebug($"Symbol {symbol.name}, rotating right");
 
                     InterpretRotationalParams(symbol, ref randAngle);
 
@@ -109,7 +110,7 @@ public class StructureGenerator : MonoBehaviour
                     break;
 
                 case Action.RotateLeft:
-                    print($"Symbol {symbol.name}, rotating left");
+                    printDebug($"Symbol {symbol.name}, rotating left");
 
                     InterpretRotationalParams(symbol, ref randAngle);
 
@@ -120,7 +121,7 @@ public class StructureGenerator : MonoBehaviour
                     break;
 
                 case Action.RotateForward:
-                    print($"Symbol {symbol.name}, rotating forward");
+                    printDebug($"Symbol {symbol.name}, rotating forward");
 
                     final += symbol.name;
                     currentNode = stack.Pop();
@@ -129,7 +130,7 @@ public class StructureGenerator : MonoBehaviour
                     break;
 
                 case Action.RotateBackward:
-                    print($"Symbol {symbol.name}, rotating backward");
+                    printDebug($"Symbol {symbol.name}, rotating backward");
 
                     final += symbol.name;
                     currentNode = stack.Pop();
@@ -138,11 +139,11 @@ public class StructureGenerator : MonoBehaviour
                     break;
 
                 case Action.StartBranch:
-                    print($"Symbol {symbol.name}, starting branch");
+                    printDebug($"Symbol {symbol.name}, starting branch");
 
                     //currentThickness = currentThickness > 1 ? currentThickness - 1 : 1;
                     final += $"</color>";
-                    final += $"<color=#{WorldManager.Instance.worldColors[stack.Peek().thickness > 1 ? stack.Peek().thickness - 1 : 1].color.ToHexString().TrimEnd("00")}>";
+                    //final += $"<color=#{WorldManager.Instance.worldColors[stack.Peek().thickness > 1 ? stack.Peek().thickness - 1 : 1].color.ToHexString().TrimEnd("00")}>";
                     final += symbol.name;
                     stack.Push(new Node()
                     {
@@ -153,12 +154,12 @@ public class StructureGenerator : MonoBehaviour
                     break;
 
                 case Action.EndBranch:
-                    print($"Symbol {symbol.name}, ending branch");
+                    printDebug($"Symbol {symbol.name}, ending branch");
 
                     //currentThickness = currentThickness < maxThickness ? currentThickness + 1 : maxThickness;
                     final += symbol.name;
                     final += $"</color>";
-                    final += $"<color=#{WorldManager.Instance.worldColors[stack.Peek().thickness].color.ToHexString().TrimEnd("00")}>";
+                    //final += $"<color=#{WorldManager.Instance.worldColors[stack.Peek().thickness].color.ToHexString().TrimEnd("00")}>";
 
                     stack.Pop();
 
@@ -169,7 +170,7 @@ public class StructureGenerator : MonoBehaviour
             }
         }
         final += $"</color>";
-        print(final);
+        printDebug(final);
 
         return segments;
     }
@@ -222,5 +223,10 @@ public class StructureGenerator : MonoBehaviour
 
         // Converting the floating-point position to integer voxel coordinates
         return Vector3Int.RoundToInt(floatingPointTarget);
+    }
+
+    public void printDebug(string str)
+    {
+        if(enablePrintDebug)print(str);
     }
 }
