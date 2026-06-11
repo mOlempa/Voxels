@@ -59,16 +59,17 @@ public class LSystemGenerator : MonoBehaviour
         List<Symbol> word = grammar.ConvertStringToSymbols(startingWord);
         List<Symbol> nextWord = new List<Symbol>();
         string sentence = "";
+        int symbolIndex;
         for (int i = 0; i < iterationLimit; i++)
         {
             printDebug("Iteration index: " + i + ", word: <color=yellow>" + GetSymbolListString(word) + "</color>");
-
+            symbolIndex = 0;
             foreach (Symbol symbol in word)
             {
                 List<Symbol> successorSymbolList = new List<Symbol>();
                 foreach (Rule rule in grammar.rules)
                 {
-                    successorSymbolList = new List<Symbol>(rule.ApplyRule(symbol));
+                    successorSymbolList = new List<Symbol>(rule.ApplyRule(symbol, word, symbolIndex));
                     printDebug("Successor: " + GetSymbolListString(successorSymbolList));    
 
                     if (successorSymbolList.Count > 0)
@@ -81,6 +82,7 @@ public class LSystemGenerator : MonoBehaviour
                 // If no successor was determined, the symbol is constant
                 if(successorSymbolList.Count == 0) nextWord.Add(symbol);
                 printDebug("nextWord: " + GetSymbolListString(nextWord));        // ?
+                symbolIndex++;
             }
             sentence = "";
             foreach (Symbol symbol in nextWord)

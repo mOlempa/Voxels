@@ -72,15 +72,76 @@ public class WorldManager : MonoBehaviour
         //List<Vector3Int> points = GenerateLine(pointA, pointB);
         List<Segment> segments = structureGenerator.ConvertSentenceToSegments(sentence);
 
-        // generating structure
         foreach (var segment in segments)
         {
-            List<Vector3Int> positions = GenerateThickLine(segment.startPos, segment.endPos, segment.thickness);
+            List<Vector3Int> positions = GenerateThickLineOriginal(segment.startPos, segment.endPos, segment.thickness);
             //List<Vector3Int> positions = GenerateLine(segment.startPos, segment.endPos);
             foreach (var pos in positions)
-                container[pos] = new Voxel() { id = 
-                    worldColors.Length > segment.thickness ? (byte)segment.thickness : (byte)1};
+                container[pos + new Vector3Int(0, 300, 0)] = new Voxel()
+                {
+                    //id = 1
+                    id = worldColors.Length > segment.thickness ? (byte)segment.thickness : (byte)1
+                };
         }
+
+        //int counter = 0;
+        int collisionsCount = 0;
+        bool didCollide;
+        bool branchChainCut = false;
+        int cutLevel = -1;
+
+        foreach (var segment in segments)
+        {
+            if (branchChainCut)
+            {
+                if(segment.branchLevel <= cutLevel)
+                {
+                    branchChainCut = false;
+                }
+                else
+                {
+                    continue;
+
+                }
+            }
+            didCollide = false;
+
+            //print("<color=lime>Segment " + counter++ + "</color>");
+            List<Vector3Int> positions = GenerateThickLine(segment.startPos, segment.endPos, segment.thickness, 
+                ref collisionsCount, ref didCollide);
+
+            if (didCollide)
+            {
+                branchChainCut = true;
+                cutLevel = segment.branchLevel;
+                continue;
+            }
+
+            //List<Vector3Int> positions = GenerateLine(segment.startPos, segment.endPos);
+            foreach (var pos in positions)
+            {
+                container[pos] = new Voxel()
+                {
+                    id = didCollide ? (byte)1 : (byte)5
+                    //id = worldColors.Length > segment.thickness ? (byte)segment.thickness : (byte)1
+                };
+            }
+        }
+
+        print($"<color=orange>Collisions count = {collisionsCount}</color>");
+
+        // generating structure
+        /*foreach (var segment in segments)
+        {
+            List<Vector3Int> positions = GenerateThickLine1(segment.startPos, segment.endPos, segment.thickness);
+            //List<Vector3Int> positions = GenerateLine(segment.startPos, segment.endPos);
+            foreach (var pos in positions)
+                container[pos + new Vector3Int(0, 300, 0)] = new Voxel()
+                {
+                    //id = 1
+                    id = worldColors.Length > segment.thickness ? (byte)segment.thickness : (byte)1
+                };
+        }*/
 
 
         /*for (int x = 0; x < aaa; x++)
@@ -103,7 +164,7 @@ public class WorldManager : MonoBehaviour
 
 
 
-    // Generating a line of voxels between two points based on Bresenham 3D algorithm
+    // Generating a line of voxels (positions) between two points based on Bresenham 3D algorithm
     List<Vector3Int> GenerateLine(Vector3Int A, Vector3Int B)
     {
         List<Vector3Int> points = new List<Vector3Int>
@@ -184,7 +245,78 @@ public class WorldManager : MonoBehaviour
         return points;
     }
 
-    public List<Vector3Int> GenerateThickLine(Vector3Int A, Vector3Int B, int radius)
+    public List<Vector3Int> GenerateThickLine(Vector3Int A, Vector3Int B, int radius, ref int collisionsCount, ref bool didCollide)
+    {
+        // Get the thin center line
+        List<Vector3Int> thinLine = GenerateLine(A, B);
+
+        HashSet<Vector3Int> thickLine = new HashSet<Vector3Int>(); // HashSet to automatically discard duplicate overlapping points
+
+        int radiusSquared = radius * radius;
+
+        // The branch must clear its own thickness before it cares about collisions
+        int graceDistanceSquared = (radius + 3) * (radius + 3);
+        //print($"<color=lime>New line {A} --> {B}</color>");
+
+        // Applying a spherical brush around every point
+        foreach (Vector3Int point in thinLine)
+        {
+            bool collisionDetected = false;
+            List<Vector3Int> currentSpherePoints = new List<Vector3Int>();
+            // Calculate distance from start point A to handle the grace zone
+            bool insideGraceZone = (point - A).sqrMagnitude <= graceDistanceSquared;
+
+            for (int x = -radius; x <= radius; x++)
+            {
+                for (int y = -radius; y <= radius; y++)
+                {
+                    for (int z = -radius; z <= radius; z++)
+                    {
+                        // Check if this local offset is within the sphere's radius
+                        // (doing x*x + y*y + z*z is much faster than Vector3.Distance)
+                        if (x * x + y * y + z * z <= radiusSquared)
+                        {
+                            //thickLine.Add(new Vector3Int(point.x + x, point.y + y, point.z + z));
+
+                            Vector3Int voxelPos = new Vector3Int(point.x + x, point.y + y, point.z + z);
+
+                            // If it's occupied and we are out of the grace zone -> Collision!
+                            if (!insideGraceZone && container[voxelPos].id != 0)
+                            {
+                                //print($"<color=orange>Collision detected at {voxelPos}!\nVoxel id is {container[voxelPos].id}</color>");
+                                //print($"<color=yellow>Line {A} --> {B}</color>");
+                                //print($"(point - A).sqrMagnitude = {(point - A).sqrMagnitude},  graceDistanceSquared = {graceDistanceSquared}");
+                                //collisionDetected = true;
+                                collisionsCount++;
+                                didCollide = true;
+                                break;
+                            }
+
+                            currentSpherePoints.Add(voxelPos);
+                        }
+                    }
+                    if (collisionDetected) break;
+                }
+                if (collisionDetected) break;
+            }
+
+            // If we hit something outside the grace zone, stop growing the branch right here
+            if (collisionDetected)
+            {
+                break;
+            }
+
+            // Otherwise, commit these points to our branch
+            foreach (var pos in currentSpherePoints)
+            {
+                thickLine.Add(pos);
+            }
+        }
+
+        return thickLine.ToList();
+    }
+
+    public List<Vector3Int> GenerateThickLineOriginal(Vector3Int A, Vector3Int B, int radius)
     {
         // Get the thin center line
         List<Vector3Int> thinLine = GenerateLine(A, B);

@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a147ee174ac0df44f840182e32131490, type: 3}
-  m_Name: Test-3
+  m_Name: Test-4
   m_EditorClassIdentifier: 
-  rootSentence: A(2)A(1)F(0)B(1)
+  rootSentence: F
   definedSymbols:
   - name: F
     character: 70
@@ -26,6 +26,14 @@ MonoBehaviour:
     character: 45
     action: 2
     parameters: []
+  - name: o
+    character: 111
+    action: 4
+    parameters: []
+  - name: x
+    character: 120
+    action: 5
+    parameters: []
   - name: '['
     character: 91
     action: 6
@@ -34,15 +42,34 @@ MonoBehaviour:
     character: 93
     action: 7
     parameters: []
-  - name: A
-    character: 65
+  - name: X
+    character: 88
     action: 1
     parameters: []
   rules:
-  - predecessor: F(x)
-    context: A_B
-    condition: x>1
+  - predecessor: F
+    context: 
+    condition: 
     userSuccessors:
       _serializedList:
-      - Key: F(x+1)
+      - Key: X[+F][-F]
         Value: 1
+      - Key: X[+F][oF]
+        Value: 1
+      - Key: X[xF][+F]
+        Value: 1
+      - Key: X[xF][-F]
+        Value: 1
+      - Key: X[oF][-F]
+        Value: 1
+      - Key: X[oF][+F]
+        Value: 1
+  - predecessor: X
+    context: 
+    condition: 
+    userSuccessors:
+      _serializedList:
+      - Key: XX
+        Value: 1
+      - Key: X
+        Value: 3

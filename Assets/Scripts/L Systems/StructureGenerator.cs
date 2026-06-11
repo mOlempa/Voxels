@@ -9,12 +9,14 @@ public struct Node
     public Vector3Int position;
     public Vector3 anglesDeg;
     public int thickness;
+    public int branchLevel;
 }
 
 public struct Segment
 {
     public Node startPoint, endPoint;
     public int thickness;
+    public int branchLevel;
     public Vector3Int startPos
     {
         get
@@ -64,9 +66,11 @@ public class StructureGenerator : MonoBehaviour
             new Vector3Int(0, 0, 0)
         };
         Stack<Node> stack = new Stack<Node>();
-        stack.Push(new Node() { position = positions[0], anglesDeg = startingAngles, thickness = maxThickness });
+        stack.Push(new Node() { position = positions[0], anglesDeg = startingAngles, thickness = maxThickness, branchLevel = 0 });
         string final = $"";
         //final += $"<color=#{WorldManager.Instance.worldColors[maxThickness].color.ToHexString().TrimEnd("00")}>";
+
+        //int branchLevel = 0; // main trunk
 
         foreach (var symbol in sentence)
         {
@@ -85,9 +89,11 @@ public class StructureGenerator : MonoBehaviour
 
                     InterpretLineParams(symbol, ref randLength, ref currentNode.thickness);     // does thickness here get changed?
 
-                    Segment segment = new Segment() { startPoint = currentNode };
-                    segment.thickness = currentNode.thickness;
-
+                    Segment segment = new Segment() {
+                        startPoint = currentNode,
+                        thickness = currentNode.thickness,
+                        branchLevel = currentNode.branchLevel
+                    };
 
                     currentNode.position = currentNode.position + GetLocalEndpoint(randLength, currentNode.anglesDeg);
 
@@ -95,6 +101,8 @@ public class StructureGenerator : MonoBehaviour
                     segments.Add(segment);
 
                     positions.Add(currentNode.position);
+
+                    currentNode.branchLevel++;
                     stack.Push(currentNode);
                     break;
 
@@ -140,7 +148,6 @@ public class StructureGenerator : MonoBehaviour
 
                 case Action.StartBranch:
                     printDebug($"Symbol {symbol.name}, starting branch");
-
                     //currentThickness = currentThickness > 1 ? currentThickness - 1 : 1;
                     final += $"</color>";
                     //final += $"<color=#{WorldManager.Instance.worldColors[stack.Peek().thickness > 1 ? stack.Peek().thickness - 1 : 1].color.ToHexString().TrimEnd("00")}>";
@@ -149,13 +156,13 @@ public class StructureGenerator : MonoBehaviour
                     {
                         position = stack.Peek().position,
                         anglesDeg = stack.Peek().anglesDeg,
-                        thickness = stack.Peek().thickness > 1 ? stack.Peek().thickness - 1 : 1
+                        thickness = stack.Peek().thickness > 1 ? stack.Peek().thickness - 1 : 1,
+                        branchLevel = stack.Peek().branchLevel + 1,
                     });
                     break;
 
                 case Action.EndBranch:
                     printDebug($"Symbol {symbol.name}, ending branch");
-
                     //currentThickness = currentThickness < maxThickness ? currentThickness + 1 : maxThickness;
                     final += symbol.name;
                     final += $"</color>";
