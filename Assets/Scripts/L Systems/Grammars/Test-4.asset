@@ -1,0 +1,75 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a147ee174ac0df44f840182e32131490, type: 3}
+  m_Name: Test-4
+  m_EditorClassIdentifier: 
+  rootSentence: F
+  definedSymbols:
+  - name: F
+    character: 70
+    action: 1
+    parameters: []
+  - name: +
+    character: 43
+    action: 3
+    parameters: []
+  - name: '-'
+    character: 45
+    action: 2
+    parameters: []
+  - name: o
+    character: 111
+    action: 4
+    parameters: []
+  - name: x
+    character: 120
+    action: 5
+    parameters: []
+  - name: '['
+    character: 91
+    action: 6
+    parameters: []
+  - name: ']'
+    character: 93
+    action: 7
+    parameters: []
+  - name: X
+    character: 88
+    action: 1
+    parameters: []
+  rules:
+  - predecessor: F
+    context: 
+    condition: 
+    userSuccessors:
+      _serializedList:
+      - Key: X[+F][-F]
+        Value: 1
+      - Key: X[+F][oF]
+        Value: 1
+      - Key: X[xF][+F]
+        Value: 1
+      - Key: X[xF][-F]
+        Value: 1
+      - Key: X[oF][-F]
+        Value: 1
+      - Key: X[oF][+F]
+        Value: 1
+  - predecessor: X
+    context: 
+    condition: 
+    userSuccessors:
+      _serializedList:
+      - Key: XX
+        Value: 1
+      - Key: X
+        Value: 3

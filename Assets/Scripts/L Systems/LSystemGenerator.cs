@@ -2,13 +2,15 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
+using System.Globalization;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using Unity.VisualScripting;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 
-public struct Node
+/*public struct Node
 {
     public Vector3Int position;
     public Vector3 anglesDeg;
@@ -33,124 +35,94 @@ public struct Segment
             return endPoint.position;
         }
     }
-}
+}*/
 
 public class LSystemGenerator : MonoBehaviour
 {
     [Range(0, 10)]
     public int iterationLimit = 1;
     public Grammar grammar;
+    public bool enablePrintDebug = false;
 
-
-    // Generate L-System sentence from given starting word
-    public string GenerateSentence(string word = null)
+    public List<Symbol> GenerateSentence(string startingWord = null)
     {
         if (grammar == null)
         {
-            return "";
+            return new List<Symbol>();
         }
 
-        grammar.UpdateSymbolDictionary();
+        grammar.CompileGrammar();
 
-        if (word == null) word = grammar.rootSentence;
-        StringBuilder newWord = new StringBuilder();
 
+        if (startingWord == null) startingWord = grammar.rootSentence;
+
+        List<Symbol> word = grammar.ConvertStringToSymbols(startingWord);
+        List<Symbol> nextWord = new List<Symbol>();
+        string sentence = "";
+        int symbolIndex;
         for (int i = 0; i < iterationLimit; i++)
         {
-            print("Iteration index: " + i + ", word: " + word);
-            newWord.Clear();
-            foreach (char c in word)
+            printDebug("Iteration index: " + i + ", word: <color=yellow>" + GetSymbolListString(word) + "</color>");
+            symbolIndex = 0;
+            foreach (Symbol symbol in word)
             {
-                Symbol symbol;
-
-                // If the alphabet does not contain the symbol or the character is constant (no rule is applied to it),
-                // just rewrite the character as is
-                if (!grammar.AlphabetContainsSymbol(c, out symbol) || symbol.isConstant)
+                List<Symbol> successorSymbolList = new List<Symbol>();
+                foreach (Rule rule in grammar.rules)
                 {
-                    newWord.Append(c);
-                    continue;
+                    successorSymbolList = new List<Symbol>(rule.ApplyRule(symbol, word, symbolIndex));
+                    printDebug("Successor: " + GetSymbolListString(successorSymbolList));    
+
+                    if (successorSymbolList.Count > 0)
+                    {
+                        nextWord.AddRange(successorSymbolList);
+                        break;
+                    }
                 }
 
-                // Apply each rule to the character
-                print("Applying rule to " + c);
-
-                //Appy a (random if multiple) rule from the list
-
-                //newWord.Append(symbol.successors[UnityEngine.Random.Range(0, symbol.successors.Length)]);
-                
-                newWord.Append(GetWeightedRandomSuccessor(symbol));
-
+                // If no successor was determined, the symbol is constant
+                if(successorSymbolList.Count == 0) nextWord.Add(symbol);
+                printDebug("nextWord: " + GetSymbolListString(nextWord));        // ?
+                symbolIndex++;
             }
-            word = newWord.ToString();
+            sentence = "";
+            foreach (Symbol symbol in nextWord)
+            {
+                sentence += symbol.GetSymbolString();
+            }
+            //print(sentence);
+            word = new List<Symbol>(nextWord);
+            nextWord.Clear();
+
         }
 
-        print("Final sentence: " + word);
+        printDebug("Final sentence: <color=yellow>" + sentence + "</color>");
 
         return word;
 
         //return GrowRecursive(word);
     }
 
-    public string GetWeightedRandomSuccessor(Symbol symbol)
+    private string GetSymbolListString(List<Symbol> list)
     {
-        int totalSum = symbol.successors.Values.Sum();
-        int random = UnityEngine.Random.Range(0, totalSum);
-        foreach (var kvp in symbol.successors)
+        string str = "";
+        foreach(Symbol s in list)
         {
-            // If random number is smaller than probability of the successor, return the successor
-            if (random <= kvp.Value)
-            {
-                return kvp.Key;
-            }
-            // Otherwise reduce random value by the probability of the current successor and go to the next one
-            random -= kvp.Value;
+            str += s.GetSymbolString();
         }
-        // If for any reason a successor was not chosen before, just return the original symbol character
-        return symbol.symbol.ToString();
-    }
-
-
-    public int GetRandomWeightedIndex(int[] weights)
-    {
-        // Get the total sum of all the weights.
-        int weightSum = 0;
-        for (int i = 0; i < weights.Length; ++i)
-        {
-            weightSum += weights[i];
-        }
-
-        // Step through all the possibilities, one by one, checking to see if each one is selected.
-        int index = 0;
-        int lastIndex = weights.Length - 1;
-        while (index < lastIndex)
-        {
-            // Do a probability check with a likelihood of weights[index] / weightSum.
-            if (UnityEngine.Random.Range(0, weightSum) < weights[index])
-            {
-                return index;
-            }
-
-            // Remove the last item from the sum of total untested weights and try again.
-            weightSum -= weights[index++];
-        }
-
-        // No other item was selected, so return very last index.
-        return index;
+        return str;
     }
 
 
 
-    int lineLength = 4;
-    int angle = 30;
 
-    public int maxLength = 5;
+    /*public int maxLength = 5;
     public int minLength = 3;
     public int maxAngle = 40;
     public int minAngle = 15;
     public int maxThickness = 5;
     public Vector3 startingAngles = Vector3.zero;
 
-    public List<Segment> ConvertSentenceToSegments(string sentence)
+    public List<Segment> ConvertSentenceToSegments(List<Symbol> sentence)
     {
         List<Segment> segments = new List<Segment>();
         //int currentThickness = maxThickness;
@@ -168,15 +140,16 @@ public class LSystemGenerator : MonoBehaviour
         string final = $"";
         final += $"<color=#{WorldManager.Instance.worldColors[maxThickness].color.ToHexString().TrimEnd("00")}>";
 
-        foreach (var c in sentence)
+        foreach (var symbol in sentence)
         {
             Node currentNode;
             int randAngle = UnityEngine.Random.Range(minAngle, maxAngle);
             //int randAngle = 30;
-            switch (grammar.GetSymbolAction(c))
+            switch (grammar.GetSymbolAction(symbol))
             {
                 case Action.PlaceLine:
-                    final += c;
+                    print($"Symbol {symbol.name}, placing line");
+                    final += symbol.name;
                     currentNode = stack.Pop();
 
                     Segment segment = new Segment() { startPoint = currentNode };
@@ -194,38 +167,48 @@ public class LSystemGenerator : MonoBehaviour
                     break;
 
                 case Action.RotateRight:
-                    final += c;
+                    print($"Symbol {symbol.name}, rotating right");
+
+                    final += symbol.name;
                     currentNode = stack.Pop();
                     currentNode.anglesDeg.x += randAngle;
                     stack.Push(currentNode);
                     break;
 
                 case Action.RotateLeft:
-                    final += c;
+                    print($"Symbol {symbol.name}, rotating left");
+
+                    final += symbol.name;
                     currentNode = stack.Pop();
                     currentNode.anglesDeg.x -= randAngle;
                     stack.Push(currentNode);
                     break;
 
                 case Action.RotateForward:
-                    final += c;
+                    print($"Symbol {symbol.name}, rotating forward");
+
+                    final += symbol.name;
                     currentNode = stack.Pop();
                     currentNode.anglesDeg.y += randAngle;
                     stack.Push(currentNode);
                     break;
 
                 case Action.RotateBackward:
-                    final += c;
+                    print($"Symbol {symbol.name}, rotating backward");
+
+                    final += symbol.name;
                     currentNode = stack.Pop();
                     currentNode.anglesDeg.y -= randAngle;
                     stack.Push(currentNode);
                     break;
 
                 case Action.StartBranch:
+                    print($"Symbol {symbol.name}, starting branch");
+
                     //currentThickness = currentThickness > 1 ? currentThickness - 1 : 1;
                     final += $"</color>";
                     final += $"<color=#{WorldManager.Instance.worldColors[stack.Peek().thickness > 1 ? stack.Peek().thickness - 1 : 1].color.ToHexString().TrimEnd("00")}>";
-                    final += c;
+                    final += symbol.name;
                     stack.Push(new Node() { 
                         position = stack.Peek().position, 
                         anglesDeg = stack.Peek().anglesDeg,
@@ -233,8 +216,10 @@ public class LSystemGenerator : MonoBehaviour
                     break;
 
                 case Action.EndBranch:
+                    print($"Symbol {symbol.name}, ending branch");
+
                     //currentThickness = currentThickness < maxThickness ? currentThickness + 1 : maxThickness;
-                    final += c;
+                    final += symbol.name;
                     final += $"</color>";
                     final += $"<color=#{WorldManager.Instance.worldColors[stack.Peek().thickness].color.ToHexString().TrimEnd("00")}>";
 
@@ -248,11 +233,6 @@ public class LSystemGenerator : MonoBehaviour
         }
         final += $"</color>";
         print(final);
-        /*print("Positions: ");
-        foreach (var pos in positions)
-        {
-            print(pos);
-        }*/
 
         return segments;
     }
@@ -268,7 +248,10 @@ public class LSystemGenerator : MonoBehaviour
 
         // Converting the floating-point position to integer voxel coordinates
         return Vector3Int.RoundToInt(floatingPointTarget);
+    }*/
+
+    void printDebug(string str)
+    {
+        if(enablePrintDebug)Debug.Log(str);
     }
-
-
 }
