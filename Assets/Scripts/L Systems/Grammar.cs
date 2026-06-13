@@ -141,7 +141,7 @@ public class Grammar : ScriptableObject
     {
         foreach (Symbol s in definedSymbols)
         {
-            if (s.character == c)
+            if (s.HasChar(c))
             {
                 symbol = s;
                 return true;

@@ -278,7 +278,7 @@ public class StructureGenerator : MonoBehaviour
             positions = GenerateThickLine(segment);
             // If no collision detected, proceed with the branch
             if (!branchCollision.didCollide) break;
-            //print("<color=cyan>Reassigning branch angle...</color>");
+            print("<color=cyan>Reassigning branch angle...</color>");
             // If collision detected, assign new end node
             currentNode.position = savedPos + GetLocalEndpoint(randLength, currentNode.anglesDeg += GetRandomAngleChange(randAngle));
             segment.endPoint = currentNode;

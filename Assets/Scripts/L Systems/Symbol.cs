@@ -46,6 +46,11 @@ public struct Symbol
         name = _character.ToString();
     }
 
+    public bool HasChar(char c)
+    {
+        return character == c;
+    }
+
     public Symbol Clone()
     {
         return new Symbol

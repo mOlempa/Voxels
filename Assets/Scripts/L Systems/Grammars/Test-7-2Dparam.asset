@@ -40,14 +40,16 @@ MonoBehaviour:
     parameters: []
   rules:
   - predecessor: Y(a,w)
-    context: 
+    userContext: 
     condition: x>0
     userSuccessors:
       _serializedList:
       - Key: X(a+10, w+1)[+Y(a, w)][-Y(a, w)]
         Value: 1
+      - Key: X(a+10, w+1)[+(5)Y(a, w)][-Y(a, w)][+Y(a,w)]
+        Value: 5
   - predecessor: X(a,w)
-    context: 
+    userContext: 
     condition: 
     userSuccessors:
       _serializedList:

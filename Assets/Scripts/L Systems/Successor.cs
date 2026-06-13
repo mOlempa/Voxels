@@ -9,14 +9,13 @@ public struct Successor
 {
     public List<Symbol> successorSymbols;
     public int probability;
-    // A list cuz there could be multiple parameters, inside a list cuz there could be multiple param symbols in successor
-    //public List<List<Func<float, float>>> indexedOperations;
 
     // A dictionary of parameter name
     // for each parameter there is a list of operations (so they are indexed)
-    // ----for example for F(x+1,y)A(x-10) the dictionary will be {x: [+1, -10], y: [=]}---
     // for example for F(x+1,y)BA(x-10) the dictionary will be {0: [+1, =], 1: [-10]}
     public Dictionary<int, List<Func<float, float>>> indexedOperations;
+
+    // Saves the names of parameters used at each occurrence of a param symbol in successor
     public Dictionary<int, char[]> namedParams;
 
     [HideInInspector] public char predecessorSymbolChar;
@@ -25,7 +24,6 @@ public struct Successor
     {
         successorSymbols = new List<Symbol>();
         indexedOperations = new Dictionary<int, List<Func<float, float>>>();
-        //indexedOperations = new List<List<Func<float, float>>>();
         this.probability = probability;
         predecessorSymbolChar = symbolChar;
         namedParams = new Dictionary<int, char[]>();

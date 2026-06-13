@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a147ee174ac0df44f840182e32131490, type: 3}
   m_Name: Test-8-2DparamFIx
   m_EditorClassIdentifier: 
-  rootSentence: Y
+  rootSentence: Y(10, 1)
   definedSymbols:
   - name: Y
     character: 89
@@ -39,19 +39,17 @@ MonoBehaviour:
     action: 1
     parameters: []
   rules:
-  - predecessor: Y
-    context: 
+  - predecessor: Y(a,w)
+    userContext: 
     condition: 
     userSuccessors:
       _serializedList:
-      - Key: X[+Y][-Y]
+      - Key: X(a, w)[+Y(a, w)][-Y(a ,w)]
         Value: 1
-  - predecessor: X
-    context: 
-    condition: 
+  - predecessor: X(a,w)
+    userContext: 
+    condition: X(=a, =1)_
     userSuccessors:
       _serializedList:
-      - Key: XX
+      - Key: X(a, w+1)X(a, w)
         Value: 1
-      - Key: X
-        Value: 3
