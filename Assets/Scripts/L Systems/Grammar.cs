@@ -21,11 +21,6 @@ public enum Action {
     EndBranch
 }
 
-/*public enum ParamRole
-{
-
-}*/
-
 
 [CreateAssetMenu(menuName = "LSystems/Grammar")]
 [ExecuteInEditMode]
@@ -36,9 +31,6 @@ public class Grammar : ScriptableObject
 
     [SerializeField]
     public Symbol[] definedSymbols;
-
-    //[SerializedDictionary("Param Name", "Role")]
-    //public SerializedDictionary<string, ParamRole> parameterRoles;
 
     [SerializeField]
     public Rule[] rules;

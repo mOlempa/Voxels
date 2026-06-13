@@ -36,7 +36,7 @@ public class Rule
         List<(Symbol symbol, List<Func<float, bool>> func)> rightContext) compiledContext;*/
     private Context compiledContext;
 
-    private Dictionary<int, char[]> namedParams;    // saves the names of parameters used at each occurrence of a param symbol in successor
+    //private Dictionary<int, char[]> namedParams;    // saves the names of parameters used at each occurrence of a param symbol in successor
     private List<(char name, float value)> predecessorParams;   // is for passing the names of predecessor params together with current values
 
     private class Context
@@ -74,7 +74,7 @@ public class Rule
     public void CompileRule()
     {
         successors = new List<Successor>();
-        namedParams = new Dictionary<int, char[]>();
+        //namedParams = new List<Dictionary<int, char[]>>();
         predecessorParams = new List<(char name, float value)>();
         compiledContext = new Context();
         CompilePredecessor();
@@ -288,7 +288,7 @@ public class Rule
         string symbolParamString = "";
         foreach (char c in pattern)
         {
-            //Debug.Log("CHAR " + c);
+            Debug.Log("CHAR " + c);
             // If a previous loop was processing parameters, skip characters until closing bracket
             if (skipCharacters)
             {
@@ -302,9 +302,6 @@ public class Rule
                     {
                         parametricSymbolOccurrenceIndex++;
 
-                        //int openBracket = GetNthIndex(pattern, '(', parametricSymbolOccurrenceIndex + 1);
-                        //int closeBracket = GetNthIndex(pattern, ')', parametricSymbolOccurrenceIndex + 1);
-
                         // Extract the arguments inside the brackets (e.g., "x+1,y*2")
                         //string argsContent = pattern.Substring(openBracket + 1, closeBracket - openBracket - 1);
                         string[] tokens = symbolParamString.Split(',');
@@ -316,17 +313,10 @@ public class Rule
                         //Debug.Log($"Adding new symbol: {s.name}, with {s.parameters.Length} parameters");
                         successor.successorSymbols.Add(s);
 
-                        // If the amount of parameters is not correct
-                        /*if (tokens.Length != symbol.parameters.Length)
-                        {
-                            Debug.LogError($"[Evaluator] Invalid pattern, wrong amount of parameters: {pattern}");
-                            return;
-                        }*/
-
                         //CompileOperations(parametricSymbolOccurrenceIndex, tokens, ref successor, out char[] names);
                         SuccessorParser.ParseParamOperations(tokens, ref successor, parametricSymbolOccurrenceIndex, out char[] names);
 
-                        namedParams.Add(parametricSymbolOccurrenceIndex, names);
+                        successor.namedParams.Add(parametricSymbolOccurrenceIndex, names);    // TODO: Fix error when multiple successors
                         skipCharacters = false;
                         symbolParamString = "";
                         continue;
@@ -485,6 +475,7 @@ public class Rule
                         // If character is the same, check for parameter conditions. Otherwise context rule does not apply
                         if (beforeSymbol[i].character == compiledContext.leftContext[i].character)
                         {
+                            if(beforeSymbol[i].IsParametric)
                             // For each parameter of the symbol
                             for (int n = 0; n < beforeSymbol[i].parameters.Length; n++)
                             {
@@ -511,6 +502,7 @@ public class Rule
                         // If character is the same, check for parameter conditions. Otherwise context rule does not apply
                         if (afterSymbol[i].character == compiledContext.rightContext[i].character)
                         {
+                            if(afterSymbol[i].IsParametric)
                             // For each parameter of the symbol
                             for (int n = 0; n < afterSymbol[i].parameters.Length; n++)
                             {
@@ -537,6 +529,7 @@ public class Rule
                 else
                 {
                     Debug.Log("<color=red>Rule does not apply</color>");
+                    return new List<Symbol>();
 
                 }
 
@@ -545,6 +538,7 @@ public class Rule
             else
             {
                 Debug.Log("<color=red>Rule does not apply - too many symbols in context</color>");
+                return new List<Symbol>();
             }
         }
 
@@ -562,7 +556,7 @@ public class Rule
                 //Debug.LogWarning($"No condition set for parametric rule: {predecessor} -> {userSuccessors}");
                 // repeat from IF below
                 Successor successor = GetWeightedRandomSuccessor();
-                List<Symbol> evaluatedSuccessor = successor.ApplyOperations(symbol, namedParams, predecessorParams);
+                List<Symbol> evaluatedSuccessor = successor.ApplyOperations(symbol, predecessorParams);
                 return evaluatedSuccessor;
             }
             //Debug.Log("Symbol has parameters, returning random parametric successor");
@@ -579,7 +573,7 @@ public class Rule
                 Successor successor = GetWeightedRandomSuccessor();
 
                 // Apply operations to successor symbols
-                List<Symbol> evaluatedSuccessor = successor.ApplyOperations(symbol, namedParams, predecessorParams);
+                List<Symbol> evaluatedSuccessor = successor.ApplyOperations(symbol, predecessorParams);
 
                 // Return the successor (list of symbols)
                 return evaluatedSuccessor;

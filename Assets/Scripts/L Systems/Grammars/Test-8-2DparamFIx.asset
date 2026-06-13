@@ -10,12 +10,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a147ee174ac0df44f840182e32131490, type: 3}
-  m_Name: Test-6
+  m_Name: Test-8-2DparamFIx
   m_EditorClassIdentifier: 
-  rootSentence: F
+  rootSentence: Y
   definedSymbols:
-  - name: F
-    character: 70
+  - name: Y
+    character: 89
     action: 1
     parameters: []
   - name: +
@@ -25,14 +25,6 @@ MonoBehaviour:
   - name: '-'
     character: 45
     action: 2
-    parameters: []
-  - name: o
-    character: 111
-    action: 4
-    parameters: []
-  - name: x
-    character: 120
-    action: 5
     parameters: []
   - name: '['
     character: 91
@@ -47,14 +39,12 @@ MonoBehaviour:
     action: 1
     parameters: []
   rules:
-  - predecessor: F
+  - predecessor: Y
     context: 
     condition: 
     userSuccessors:
       _serializedList:
-      - Key: X[+F][-F]
-        Value: 1
-      - Key: X[+F]
+      - Key: X[+Y][-Y]
         Value: 1
   - predecessor: X
     context: 

@@ -17,6 +17,7 @@ public struct Successor
     // ----for example for F(x+1,y)A(x-10) the dictionary will be {x: [+1, -10], y: [=]}---
     // for example for F(x+1,y)BA(x-10) the dictionary will be {0: [+1, =], 1: [-10]}
     public Dictionary<int, List<Func<float, float>>> indexedOperations;
+    public Dictionary<int, char[]> namedParams;
 
     [HideInInspector] public char predecessorSymbolChar;
 
@@ -27,6 +28,7 @@ public struct Successor
         //indexedOperations = new List<List<Func<float, float>>>();
         this.probability = probability;
         predecessorSymbolChar = symbolChar;
+        namedParams = new Dictionary<int, char[]>();
     }
 
     public List<Symbol> GetSymbolClones()
@@ -36,7 +38,7 @@ public struct Successor
         return result;
     }
 
-    public List<Symbol> ApplyOperations(Symbol currentSymbol, Dictionary<int, char[]> namedParams,
+    public List<Symbol> ApplyOperations(Symbol currentSymbol,
         List<(char name, float value)> predecessorParams)  // gives us current value of the named parameter
     {
         int parametricSymbolOccurrenceIndex = -1;

@@ -6,6 +6,22 @@ using Unity.VisualScripting;
 using UnityEngine;
 using static UnityEditor.PlayerSettings;
 
+public class BranchCollisionHelper
+{
+    public int collisionsCount;
+    public bool didCollide;
+    public bool cutChildBranches;
+    public int cutLevel;
+
+    public BranchCollisionHelper()
+    {
+        collisionsCount = 0;
+        didCollide = false;
+        cutChildBranches = false;
+        cutLevel = -1;
+    }
+}
+
 public class WorldManager : MonoBehaviour
 {
     [SerializeField]
@@ -17,7 +33,7 @@ public class WorldManager : MonoBehaviour
     public VoxelColor[] worldColors;
     public Material worldMaterial;
 
-    private Container container;
+    public Container container;
 
     private static WorldManager _instance;
     public static WorldManager Instance
@@ -32,34 +48,11 @@ public class WorldManager : MonoBehaviour
         }
     }
 
-    // Start is called before the first frame update
+    
+
+
     void Start()
     {
-        /*string[] tokens = { "x-1", "a", "y/2+1", "(1-e)^2", "x*5" };
-        var result = new Dictionary<char, List<Func<float, float>>>();
-        SuccessorParser.ParseParamOperations(tokens, ref result);
-
-        // Let's test evaluating the compiled 'x' functions (x-1 and x*5)
-        if (result.ContainsKey('a'))
-        {
-            print("Evaluating operations for parameter 'x' with input value 10:");
-            foreach (var func in result['a'])
-            {
-                // Output 1: 10 - 1 = 9
-                // Output 2: 10 * 5 = 50
-                print($"Result: {func(5)}");
-            }
-        }
-
-        // Let's test evaluating the 'e' function: (1 - e)^2
-        if (result.ContainsKey('e'))
-        {
-            var eFunc = result['e'].First();
-            print($"\nEvaluating '(1-e)^2' where e = 3: {eFunc(3f)}"); // (1 - 3)^2 = 4
-        }
-        return;*/
-
-
         GameObject cont = new GameObject("Container");
         cont.transform.parent = transform;
         container = cont.AddComponent<Container>();
@@ -70,65 +63,81 @@ public class WorldManager : MonoBehaviour
         List<Symbol> sentence = lSystemGenerator.GenerateSentence();
         //return;
         //List<Vector3Int> points = GenerateLine(pointA, pointB);
+
         List<Segment> segments = structureGenerator.ConvertSentenceToSegments(sentence);
 
+        // No collision detection generation
         foreach (var segment in segments)
         {
             List<Vector3Int> positions = GenerateThickLineOriginal(segment.startPos, segment.endPos, segment.thickness);
             //List<Vector3Int> positions = GenerateLine(segment.startPos, segment.endPos);
             foreach (var pos in positions)
-                container[pos + new Vector3Int(0, 300, 0)] = new Voxel()
+                container[pos + new Vector3Int(0, 200, 0)] = new Voxel()
                 {
                     //id = 1
                     id = worldColors.Length > segment.thickness ? (byte)segment.thickness : (byte)1
                 };
         }
 
+        structureGenerator.ConvertSentenceToSegments2(sentence);
+
         //int counter = 0;
-        int collisionsCount = 0;
-        bool didCollide;
-        bool branchChainCut = false;
-        int cutLevel = -1;
+        /*BranchCollisionHelper branchCollision = new BranchCollisionHelper();
+        int branchTryAmount = 3;
 
         foreach (var segment in segments)
         {
-            if (branchChainCut)
+            // Don't generate further child branches if collision was detected earlier
+            if (branchCollision.cutChildBranches)
             {
-                if(segment.branchLevel <= cutLevel)
+                // Check if we are still in the children branches
+                if (segment.branchLevel <= branchCollision.cutLevel)
                 {
-                    branchChainCut = false;
+                    branchCollision.cutChildBranches = false;
                 }
                 else
                 {
                     continue;
-
                 }
             }
-            didCollide = false;
+            branchCollision.didCollide = false;
+            List<Vector3Int> positions = new List<Vector3Int>();
+            Segment segmentCopy = segment;
+
+            // Try to generate a branch set amount of times in case a collision happens
+            for (int i = 0; i < branchTryAmount; i++)
+            {
+                positions = GenerateThickLine(segmentCopy, ref branchCollision);
+                // If no collision detected, proceed with the branch
+                if (!branchCollision.didCollide) break;
+                // If collision detected, assign new end node
+                segmentCopy = segmentCopy.ChangeEndpointPos(
+                    StructureGenerator.GetLocalEndpoint(segmentCopy.length, segmentCopy.startPoint.anglesDeg));
+            }
 
             //print("<color=lime>Segment " + counter++ + "</color>");
-            List<Vector3Int> positions = GenerateThickLine(segment.startPos, segment.endPos, segment.thickness, 
-                ref collisionsCount, ref didCollide);
+            //List<Vector3Int> positions = GenerateThickLine(segment, ref branchCollision);
 
-            if (didCollide)
+            // If collision detected, stop generating further child branches
+            if (branchCollision.didCollide)
             {
-                branchChainCut = true;
-                cutLevel = segment.branchLevel;
+                branchCollision.cutChildBranches = true;
+                branchCollision.cutLevel = segment.branchLevel;
                 continue;
             }
 
-            //List<Vector3Int> positions = GenerateLine(segment.startPos, segment.endPos);
+            // Generate voxels
             foreach (var pos in positions)
             {
                 container[pos] = new Voxel()
                 {
-                    id = didCollide ? (byte)1 : (byte)5
+                    id = branchCollision.didCollide ? (byte)1 : (byte)5
                     //id = worldColors.Length > segment.thickness ? (byte)segment.thickness : (byte)1
                 };
             }
         }
 
-        print($"<color=orange>Collisions count = {collisionsCount}</color>");
+        print($"<color=orange>Collisions count = {branchCollision.collisionsCount}</color>");*/
 
         // generating structure
         /*foreach (var segment in segments)
@@ -245,13 +254,13 @@ public class WorldManager : MonoBehaviour
         return points;
     }
 
-    public List<Vector3Int> GenerateThickLine(Vector3Int A, Vector3Int B, int radius, ref int collisionsCount, ref bool didCollide)
+    public List<Vector3Int> GenerateThickLine(Segment segment, ref BranchCollisionHelper branchCollision)
     {
         // Get the thin center line
-        List<Vector3Int> thinLine = GenerateLine(A, B);
+        List<Vector3Int> thinLine = GenerateLine(segment.startPos, segment.endPos);
 
         HashSet<Vector3Int> thickLine = new HashSet<Vector3Int>(); // HashSet to automatically discard duplicate overlapping points
-
+        int radius = segment.thickness;
         int radiusSquared = radius * radius;
 
         // The branch must clear its own thickness before it cares about collisions
@@ -264,7 +273,7 @@ public class WorldManager : MonoBehaviour
             bool collisionDetected = false;
             List<Vector3Int> currentSpherePoints = new List<Vector3Int>();
             // Calculate distance from start point A to handle the grace zone
-            bool insideGraceZone = (point - A).sqrMagnitude <= graceDistanceSquared;
+            bool insideGraceZone = (point - segment.startPos).sqrMagnitude <= graceDistanceSquared;
 
             for (int x = -radius; x <= radius; x++)
             {
@@ -287,8 +296,8 @@ public class WorldManager : MonoBehaviour
                                 //print($"<color=yellow>Line {A} --> {B}</color>");
                                 //print($"(point - A).sqrMagnitude = {(point - A).sqrMagnitude},  graceDistanceSquared = {graceDistanceSquared}");
                                 //collisionDetected = true;
-                                collisionsCount++;
-                                didCollide = true;
+                                branchCollision.collisionsCount++;
+                                branchCollision.didCollide = true;
                                 break;
                             }
 

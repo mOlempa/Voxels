@@ -434,9 +434,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 674c5882d7ca282478663dca862dfc7e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  iterationLimit: 3
+  iterationLimit: 4
   grammar: {fileID: 11400000, guid: dd6e1c9aafb34994baa722d054b411a0, type: 2}
-  enablePrintDebug: 1
+  enablePrintDebug: 0
 --- !u!4 &1659058147
 Transform:
   m_ObjectHideFlags: 0
@@ -466,10 +466,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   grammar: {fileID: 11400000, guid: dd6e1c9aafb34994baa722d054b411a0, type: 2}
   enablePrintDebug: 0
-  maxLength: 50
-  minLength: 40
+  maxLength: 25
+  minLength: 10
   maxAngle: 35
-  minAngle: 30
+  minAngle: 20
   maxThickness: 2
 --- !u!1660057539 &9223372036854775807
 SceneRoots:

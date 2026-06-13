@@ -10,32 +10,6 @@ using Unity.VisualScripting;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 
-/*public struct Node
-{
-    public Vector3Int position;
-    public Vector3 anglesDeg;
-    public int thickness;
-}
-
-public struct Segment
-{
-    public Node startPoint, endPoint;
-    public int thickness;
-    public Vector3Int startPos
-    {
-        get
-        {
-            return startPoint.position;
-        }
-    }
-    public Vector3Int endPos
-    {
-        get
-        {
-            return endPoint.position;
-        }
-    }
-}*/
 
 public class LSystemGenerator : MonoBehaviour
 {
@@ -70,7 +44,7 @@ public class LSystemGenerator : MonoBehaviour
                 foreach (Rule rule in grammar.rules)
                 {
                     successorSymbolList = new List<Symbol>(rule.ApplyRule(symbol, word, symbolIndex));
-                    printDebug("Successor: " + GetSymbolListString(successorSymbolList));    
+                    //printDebug("Successor: " + GetSymbolListString(successorSymbolList));    
 
                     if (successorSymbolList.Count > 0)
                     {
@@ -81,7 +55,7 @@ public class LSystemGenerator : MonoBehaviour
 
                 // If no successor was determined, the symbol is constant
                 if(successorSymbolList.Count == 0) nextWord.Add(symbol);
-                printDebug("nextWord: " + GetSymbolListString(nextWord));        // ?
+               // printDebug("nextWord: " + GetSymbolListString(nextWord));
                 symbolIndex++;
             }
             sentence = "";
