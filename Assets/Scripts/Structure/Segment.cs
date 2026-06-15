@@ -1,0 +1,44 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+
+public struct Segment
+{
+    public Node startPoint, endPoint;
+    public int thickness;
+    public int branchLevel;
+    public int length;
+    public Vector3Int startPos
+    {
+        get
+        {
+            return startPoint.position;
+        }
+    }
+    public Vector3Int endPos
+    {
+        get
+        {
+            return endPoint.position;
+        }
+    }
+
+    public Segment ChangeEndpointPos(Vector3Int pos)
+    {
+        return new Segment
+        {
+            startPoint = startPoint,
+            endPoint = new Node
+            {
+                position = pos,
+                branchLevel = endPoint.branchLevel,
+                anglesDeg = endPoint.anglesDeg,
+                thickness = endPoint.thickness
+            },
+            thickness = thickness,
+            branchLevel = branchLevel,
+            length = length
+        };
+    }
+}

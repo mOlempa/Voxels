@@ -5,53 +5,8 @@ using Unity.VisualScripting;
 using UnityEngine.UIElements;
 using System.Linq;
 using static UnityEngine.Rendering.HableCurve;
+using static Utilities;
 
-public struct Node
-{
-    public Vector3Int position;
-    public Vector3 anglesDeg;
-    public int thickness;
-    public int branchLevel;
-}
-
-public struct Segment
-{
-    public Node startPoint, endPoint;
-    public int thickness;
-    public int branchLevel;
-    public int length;
-    public Vector3Int startPos
-    {
-        get
-        {
-            return startPoint.position;
-        }
-    }
-    public Vector3Int endPos
-    {
-        get
-        {
-            return endPoint.position;
-        }
-    }
-
-    public Segment ChangeEndpointPos(Vector3Int pos)
-    {
-        return new Segment
-        {
-            startPoint = startPoint,
-            endPoint = new Node { 
-                position = pos, 
-                branchLevel = endPoint.branchLevel,
-                anglesDeg = endPoint.anglesDeg,
-                thickness = endPoint.thickness
-            },
-            thickness = thickness,
-            branchLevel = branchLevel,
-            length = length
-        };
-    }
-}
 
 public class StructureGenerator : MonoBehaviour
 {
@@ -94,17 +49,13 @@ public class StructureGenerator : MonoBehaviour
             return new List<Segment>();
         }
         List<Segment> segments = new List<Segment>();
-        //int currentThickness = maxThickness;
 
-        printDebug($"<color=#FF1100>aaaaa</color>");
         //printDebug($"<color=#{WorldManager.Instance.worldColors[0].color.ToHexString().TrimEnd("00")}>{WorldManager.Instance.worldColors[0].color.ToHexString()}</color>");
 
         Stack<Node> stack = new Stack<Node>();
         stack.Push(new Node() { position = new Vector3Int(0, 0, 0), anglesDeg = startingAngles, thickness = maxThickness, branchLevel = 0 });
         string final = $"";
         //final += $"<color=#{WorldManager.Instance.worldColors[maxThickness].color.ToHexString().TrimEnd("00")}>";
-
-        //int branchLevel = 0; // main trunk
 
         foreach (var symbol in sentence)
         {
@@ -136,48 +87,8 @@ public class StructureGenerator : MonoBehaviour
                         InterpretLineParams(symbol, ref randLength, ref currentNode.thickness);     // does thickness here get changed?
                         GenerateSegment(ref currentNode, randLength, randAngle);
 
-                        /*Segment segment = new Segment()
-                        {
-                            startPoint = currentNode,
-                            thickness = currentNode.thickness,
-                            branchLevel = currentNode.branchLevel,
-                            length = randLength
-                        };
-                        currentNode.position = currentNode.position + GetLocalEndpoint(randLength, currentNode.anglesDeg);
-                        segment.endPoint = currentNode;
-
-                        // Generate voxels
-                        List<Vector3Int> positions = new List<Vector3Int>();
-                        for (int i = 0; i < branchTryAmount; i++)
-                        {
-                            positions = GenerateThickLine(segment, ref branchCollision);
-                            // If no collision detected, proceed with the branch
-                            if (!branchCollision.didCollide) break;
-                            // If collision detected, assign new end node
-                            currentNode.position = currentNode.position + GetLocalEndpoint(randLength,
-                                currentNode.anglesDeg + new Vector3(5, 5, 5));  // make the new angles random in some range !!!
-                            segment.endPoint = currentNode;
-                        }
-
-                        if (branchCollision.didCollide)
-                        {
-                            branchCollision.cutChildBranches = true;
-                            branchCollision.cutLevel = segment.branchLevel;
-                        }
-                        else
-                        {
-                            foreach (var pos in positions)
-                                WorldManager.Instance.container[pos] = new Voxel()
-                                {
-                                    //id = 1
-                                    id = WorldManager.Instance.worldColors.Length > segment.thickness ? (byte)segment.thickness : (byte)1
-                                };
-                            //segments.Add(segment);
-                        }*/
-
                     }
 
-                    //segments.Add(segment);
                     currentNode.branchLevel++;
                     stack.Push(currentNode);
                     break;
@@ -224,7 +135,6 @@ public class StructureGenerator : MonoBehaviour
 
                 case Action.StartBranch:
                     printDebug($"Symbol {symbol.name}, starting branch");
-                    //currentThickness = currentThickness > 1 ? currentThickness - 1 : 1;
                     //final += $"</color>";
                     //final += $"<color=#{WorldManager.Instance.worldColors[stack.Peek().thickness > 1 ? stack.Peek().thickness - 1 : 1].color.ToHexString().TrimEnd("00")}>";
                     final += symbol.name;
@@ -239,7 +149,6 @@ public class StructureGenerator : MonoBehaviour
 
                 case Action.EndBranch:
                     printDebug($"Symbol {symbol.name}, ending branch");
-                    //currentThickness = currentThickness < maxThickness ? currentThickness + 1 : maxThickness;
                     final += symbol.name;
                     //final += $"</color>";
                     //final += $"<color=#{WorldManager.Instance.worldColors[stack.Peek().thickness].color.ToHexString().TrimEnd("00")}>";
@@ -322,9 +231,6 @@ public class StructureGenerator : MonoBehaviour
             return new List<Segment>();
         }
         List<Segment> segments = new List<Segment>();
-        //int currentThickness = maxThickness;
-
-        printDebug($"<color=#FF1100>aaaaa</color>");
         //printDebug($"<color=#{WorldManager.Instance.worldColors[0].color.ToHexString().TrimEnd("00")}>{WorldManager.Instance.worldColors[0].color.ToHexString()}</color>");
 
         List<Vector3Int> positions = new List<Vector3Int>
@@ -492,18 +398,6 @@ public class StructureGenerator : MonoBehaviour
         }
     }
 
-    public static Vector3Int GetLocalEndpoint(float length, Vector3 eulerAngles)
-    {
-        // Converting the Euler angles into a rotation Quaternion
-        Quaternion rotation = Quaternion.Euler(eulerAngles);
-
-        // Multiplying the rotation by Unity's forward vector (0, 0, 1) scaled by length
-        // (in Unity, multiplying a Quaternion by a Vector3 rotates that vector)
-        Vector3 floatingPointTarget = rotation * Vector3.forward * length;
-
-        // Converting the floating-point position to integer voxel coordinates
-        return Vector3Int.RoundToInt(floatingPointTarget);
-    }
 
     public void printDebug(string str)
     {
@@ -601,119 +495,6 @@ public class StructureGenerator : MonoBehaviour
         return thickLine.ToList();
     }
 
-    public List<Vector3Int> GenerateThickLine(Vector3Int A, Vector3Int B, int radius)
-    {
-        // Get the thin center line
-        List<Vector3Int> thinLine = GenerateLine(A, B);
-
-        HashSet<Vector3Int> thickLine = new HashSet<Vector3Int>(); // HashSet to automatically discard duplicate overlapping points
-
-        int radiusSquared = radius * radius;
-
-        // Applying a spherical brush around every point
-        foreach (Vector3Int point in thinLine)
-        {
-            for (int x = -radius; x <= radius; x++)
-            {
-                for (int y = -radius; y <= radius; y++)
-                {
-                    for (int z = -radius; z <= radius; z++)
-                    {
-                        // Check if this local offset is within the sphere's radius
-                        // (doing x*x + y*y + z*z is much faster than Vector3.Distance)
-                        if (x * x + y * y + z * z <= radiusSquared)
-                        {
-                            thickLine.Add(new Vector3Int(point.x + x, point.y + y, point.z + z));
-                        }
-                    }
-                }
-            }
-        }
-
-        return thickLine.ToList();
-    }
-
-    // Generating a line of voxels (positions) between two points based on Bresenham 3D algorithm
-    List<Vector3Int> GenerateLine(Vector3Int A, Vector3Int B)
-    {
-        List<Vector3Int> points = new List<Vector3Int>
-        {
-            A
-        };
-
-        Vector3Int d = new Vector3Int(Mathf.Abs(B.x - A.x), Mathf.Abs(B.y - A.y), Mathf.Abs(B.z - A.z));
-        Vector3Int step = new Vector3Int(B.x > A.x ? 1 : -1, B.y > A.y ? 1 : -1, B.z > A.z ? 1 : -1);
-
-        if (d.x >= d.y && d.x >= d.z)
-        {
-            int p1 = 2 * d.y - d.x;
-            int p2 = 2 * d.z - d.x;
-            while (A.x != B.x)
-            {
-                A.x += step.x;
-                if (p1 >= 0)
-                {
-                    A.y += step.y;
-                    p1 -= 2 * d.x;
-                }
-                if (p2 >= 0)
-                {
-                    A.z += step.z;
-                    p2 -= 2 * d.x;
-                }
-                p1 += 2 * d.y;
-                p2 += 2 * d.z;
-                points.Add(A);
-            }
-        }
-        else if (d.y >= d.x && d.y >= d.z)
-        {
-            int p1 = 2 * d.x - d.y;
-            int p2 = 2 * d.z - d.y;
-            while (A.y != B.y)
-            {
-                A.y += step.y;
-                if (p1 >= 0)
-                {
-                    A.x += step.x;
-                    p1 -= 2 * d.y;
-                }
-                if (p2 >= 0)
-                {
-                    A.z += step.z;
-                    p2 -= 2 * d.y;
-                }
-                p1 += 2 * d.x;
-                p2 += 2 * d.z;
-                points.Add(A);
-            }
-        }
-        else
-        {
-            int p1 = 2 * d.y - d.z;
-            int p2 = 2 * d.x - d.z;
-            while (A.z != B.z)
-            {
-                A.z += step.z;
-                if (p1 >= 0)
-                {
-                    A.y += step.y;
-                    p1 -= 2 * d.z;
-                }
-                if (p2 >= 0)
-                {
-                    A.x += step.x;
-                    p2 -= 2 * d.z;
-                }
-                p1 += 2 * d.y;
-                p2 += 2 * d.x;
-                points.Add(A);
-            }
-        }
-
-
-        return points;
-    }
 
     private void GenerateLeaf(Vector3Int branchPointPos, Quaternion branchRot)
     {
@@ -810,37 +591,27 @@ public class StructureGenerator : MonoBehaviour
 
 public static class VoxelRotator
 {
-    /// <summary>
-    /// Rotates an array of voxel positions around a pivot point.
-    /// </summary>
-    /// <param name="voxels">Original Vector3Int positions.</param>
-    /// <param name="pivot">The point around which to rotate.</param>
-    /// <param name="branchRotation">The base rotation of the branch.</param>
-    /// <param name="extraRotation">Additional rotation (e.g., turning away from the branch).</param>
-    /// <returns>A new array of rotated Vector3Int positions.</returns>
     public static Vector3Int[] RotateLeaves(Vector3Int[] voxels, Vector3 pivot, Quaternion branchRotation, Quaternion extraRotation)
     {
-        // In Unity, multiplying Quaternions combines their rotations.
-        // Reading right-to-left: it applies the extraRotation first, then the branchRotation.
         Quaternion finalRotation = branchRotation * extraRotation;
 
         Vector3Int[] rotatedVoxels = new Vector3Int[voxels.Length];
 
         for (int i = 0; i < voxels.Length; i++)
         {
-            // 1. Convert to float-based Vector3
+            // Convert to float-based Vector3
             Vector3 pos = voxels[i];
 
-            // 2. Find the position relative to the pivot
+            // Find the position relative to the pivot
             Vector3 dirFromPivot = pos - pivot;
 
-            // 3. Rotate the relative position
+            // Rotate the relative position
             Vector3 rotatedDir = finalRotation * dirFromPivot;
 
-            // 4. Add the pivot back to get the final world/local position
+            // Add the pivot back to get the final world/local position
             Vector3 finalPos = pivot + rotatedDir;
 
-            // 5. Snap back to the voxel grid
+            // Snap back to the voxel grid
             rotatedVoxels[i] = new Vector3Int(
                 Mathf.RoundToInt(finalPos.x),
                 Mathf.RoundToInt(finalPos.y),

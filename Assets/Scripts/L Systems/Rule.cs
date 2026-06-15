@@ -9,7 +9,7 @@ using Unity.Mathematics;
 using Unity.VisualScripting;
 using Unity.VisualScripting.Antlr3.Runtime;
 using UnityEngine;
-
+using static Utilities;
 
 
 [Serializable]
@@ -58,27 +58,9 @@ public class Rule
             CompileSuccessor(s.Key, s.Value);
         }
     }
+    
 
-
-    private int GetParamIndex(string str, string paramName)
-    {
-        int openBracket = str.IndexOf('(');
-        int closeBracket = str.IndexOf(')');
-        if (openBracket == -1 || closeBracket == -1) return -1;
-
-        // Extract the arguments inside the brackets
-        string argsContent = str.Substring(openBracket + 1, closeBracket - openBracket - 1);
-        string[] tokens = argsContent.Split(',');
-        for(int i = 0; i < tokens.Length; i++)
-        {
-            if (tokens[i] == paramName) return i;
-        }
-
-        // In case the parameter name was not found in the string, return -1
-        return -1;
-    }
-
-    public void CompilePredecessor()
+    private void CompilePredecessor()
     {
         int openBracket = predecessor.IndexOf('(');
         int closeBracket = predecessor.IndexOf(')');
@@ -96,7 +78,7 @@ public class Rule
     }
 
 
-    public void ReadCondition()
+    private void ReadCondition()
     {
         if(condition.Length > 0)
         {
@@ -104,9 +86,10 @@ public class Rule
             condition = Regex.Replace(condition, @"\s+", "");
             predecessor = Regex.Replace(predecessor, @"\s+", "");
 
-            // Read the first character as the parameter name and find the index of the parameter
-            int index = GetParamIndex(predecessor, condition[0].ToString());
+            // Read the first character of condition as the parameter name and find the index of the parameter
+            int index = GetDeclaredParamIndex(predecessor, condition[0]);
             if (index == -1) return;
+
             compiledParamCondition.index = index;
 
             // Create a Func<float, bool> comparing parameter to read value
@@ -154,6 +137,7 @@ public class Rule
         int parametricSymbolOccurrenceIndex = -1;
         int bracketAmount = 0;
         string symbolParamString = "";
+
         foreach (char c in pattern)
         {
             //Debug.Log("CHAR " + c);
@@ -207,23 +191,6 @@ public class Rule
         successors.Add(successor);
     }
 
-    public int GetNthIndex(string s, char t, int n)
-    {
-        int count = 0;
-        for (int i = 0; i < s.Length; i++)
-        {
-            if (s[i] == t)
-            {
-                count++;
-                if (count == n)
-                {
-                    return i;
-                }
-            }
-        }
-        return -1;
-    }
-
     public List<Symbol> ApplyRule(Symbol symbol, List<Symbol> currentWord, int symbolIndex)
     {
         // If the first character of the predecessor is not the symbol's character, the rule doesn't apply
@@ -241,7 +208,9 @@ public class Rule
                 //Debug.Log("Symbol: " + symbol.character);
                 //predecessorParams[i] = (predecessorParams[i].name, symbol.parameters[i]);
                 //Debug.Log(" predecessorParams.count = " + predecessorParams.Count);
-                if (predecessorParams.Count <= i) predecessorParams.Add((noName, symbol.parameters[i]));
+
+                // If there are no predecessor parameters created yet, add the value with a "no name" name
+                if (predecessorParams.Count <= i) predecessorParams.Add((noName, symbol.parameters[i]));    // TODO: What?
                 else predecessorParams[i] = (predecessorParams[i].name, symbol.parameters[i]);
             }
         }
@@ -312,7 +281,7 @@ public class Rule
     }
 
 
-    public Successor GetWeightedRandomSuccessor()
+    private Successor GetWeightedRandomSuccessor()
     {
         int totalSum = userSuccessors.Values.Sum();
         int random = UnityEngine.Random.Range(0, totalSum);
