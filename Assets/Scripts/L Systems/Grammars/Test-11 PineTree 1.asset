@@ -10,12 +10,16 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a147ee174ac0df44f840182e32131490, type: 3}
-  m_Name: Test-8-2DparamFIx
+  m_Name: Test-11 PineTree 1
   m_EditorClassIdentifier: 
-  rootSentence: Y(10, 1)
+  rootSentence: FA(0)
   definedSymbols:
-  - name: Y
-    character: 89
+  - name: A
+    character: 65
+    action: 0
+    parameters: []
+  - name: F
+    character: 70
     action: 1
     parameters: []
   - name: +
@@ -34,22 +38,34 @@ MonoBehaviour:
     character: 93
     action: 7
     parameters: []
-  - name: X
-    character: 88
+  - name: L
+    character: 76
+    action: 8
+    parameters: []
+  - name: o
+    character: 111
+    action: 4
+    parameters: []
+  - name: x
+    character: 120
+    action: 5
+    parameters: []
+  - name: B
+    character: 66
     action: 1
     parameters: []
   rules:
-  - predecessor: Y(a,w)
+  - predecessor: A(a)
     userContext: 
     condition: 
     userSuccessors:
       _serializedList:
-      - Key: X(a, w)Y(a, w)
+      - Key: '[-FB(a)][+FB(a)]FA(a+10)'
         Value: 1
-  - predecessor: X(a,w)
-    userContext: X(=a,=1)_
-    condition: 
+  - predecessor: B(a)
+    userContext: 
+    condition: a>0
     userSuccessors:
       _serializedList:
-      - Key: X(a, w+1)X(a, w+1)X(a, w)
+      - Key: FB(v-10)
         Value: 1

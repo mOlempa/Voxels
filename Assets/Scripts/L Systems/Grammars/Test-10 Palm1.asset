@@ -1,0 +1,89 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a147ee174ac0df44f840182e32131490, type: 3}
+  m_Name: Test-10 Palm1
+  m_EditorClassIdentifier: 
+  rootSentence: A(40,10)
+  definedSymbols:
+  - name: A
+    character: 65
+    action: 0
+    parameters: []
+  - name: F
+    character: 70
+    action: 1
+    parameters: []
+  - name: +
+    character: 43
+    action: 3
+    parameters: []
+  - name: '-'
+    character: 45
+    action: 2
+    parameters: []
+  - name: '['
+    character: 91
+    action: 6
+    parameters: []
+  - name: ']'
+    character: 93
+    action: 7
+    parameters: []
+  - name: L
+    character: 76
+    action: 8
+    parameters: []
+  - name: o
+    character: 111
+    action: 4
+    parameters: []
+  - name: x
+    character: 120
+    action: 5
+    parameters: []
+  - name: Z
+    character: 90
+    action: 1
+    parameters: []
+  rules:
+  - predecessor: A(a,w)
+    userContext: 
+    condition: w>5
+    userSuccessors:
+      _serializedList:
+      - Key: F(a,w)+(5)A(a,w-1)
+        Value: 1
+      - Key: F(a,w)-(5)A(a,w-1)
+        Value: 1
+      - Key: F(a,w)A(a,w-1)
+        Value: 1
+  - predecessor: A(a,w)
+    userContext: 
+    condition: w==5
+    userSuccessors:
+      _serializedList:
+      - Key: '[+(50)B(20,2)][-(50)B(20,2)]'
+        Value: 1
+  - predecessor: B(a,w)
+    userContext: +(>0)_
+    condition: w==2
+    userSuccessors:
+      _serializedList:
+      - Key: B(a,w)+(5)F(a,w)
+        Value: 1
+  - predecessor: B(a,w)
+    userContext: -(>0)_
+    condition: w==2
+    userSuccessors:
+      _serializedList:
+      - Key: B(a,w)-(5)F(a,w)
+        Value: 1

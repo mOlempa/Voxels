@@ -11,13 +11,15 @@ using Unity.VisualScripting.Antlr3.Runtime;
 using UnityEngine;
 
 
+
 [Serializable]
 public class Rule
 {
     [Tooltip("e.g., 'F' for standard, or 'A(x,y)' for parametric")]
     public string predecessor;
 
-    [Tooltip("e.g. BB_A (BB before and A after the symbol), or leave empty for no context")]
+    [Tooltip("e.g. AA_C, AF(>3,0)_C(<5), BB_, _X(=a, >1), or leave empty for no context. ALWAYS give " +
+        "parameter comparison if symbol is parametric!")]
     public string userContext = "";
 
     [Tooltip("If parametric, add comparison rule with parameter name, e.g. 'x < 2'")]
@@ -38,147 +40,23 @@ public class Rule
 
     private List<(char name, float value)> predecessorParams;   // is for passing the names of predecessor params together with current values
 
-
-    private class Context
-    {
-        public List<ContextSymbol> leftContext;
-        public List<ContextSymbol> rightContext;
-
-        public Context()
-        {
-            leftContext = new List<ContextSymbol>();
-            rightContext = new List<ContextSymbol>();
-        }
-
-    }
-
-    private class ContextSymbol
-    {
-        public char character;
-        public List<Func<float, float, bool>> paramConditions;
-        public List<object> comparisonVariables;
-
-        public ContextSymbol(char c)
-        {
-            character = c;
-            paramConditions = new List<Func<float, float, bool>>();
-            comparisonVariables = new List<object>();
-        }
-
-        public ContextSymbol(char c, List<Func<float, float, bool>> conditions)
-        {
-            character = c;
-            paramConditions = conditions;
-            comparisonVariables = new List<object>();
-        }
-
-        public void CompileParamComparisons(string condition)
-        {
-            Debug.Log("Compiling context parameters for symbol " + character);
-            Match match = Regex.Match(condition, @">=|<=|=|>|<|==");
-            if (!match.Success)
-            {
-                Debug.LogError($"No operator comparing parameter given in the parameter rule string!");
-            }
-            string conditionValue = condition.Split(match.Value).Last();
-            if (conditionValue.Length > 1)
-            {
-                Debug.LogError($"Wrong format! Only one (1) character allowed after comparison sign!");
-            }
-
-            Match matchNumber = Regex.Match(conditionValue, @"(\d+)");
-            if (matchNumber.Success)
-            {
-                // If condition has a number value, add it as a float
-                float.TryParse(matchNumber.Value, out float value);
-                comparisonVariables.Add(value);
-                Debug.Log("Added a VALUE as parameter comparison");
-            }
-            else
-            {
-                // If condition has a parameter name, add it as a char
-                comparisonVariables.Add(conditionValue[0]);
-                Debug.Log("Added a NAME as parameter comparison");
-            }
-
-            switch (match.Value)
-            {
-                case ">":
-                    paramConditions.Add( (x, y) => x > y);
-                    break;
-                case "<":
-                    paramConditions.Add( (x, y) => x < y);
-                    break;
-                case ">=":
-                    paramConditions.Add( (x, y) => x >= y);
-                    break;
-                case "<=":
-                    paramConditions.Add( (x, y) => x <= y);
-                    break;
-                case "=":
-                    paramConditions.Add( (x, y) => x == y);
-                    break;
-                case "==":
-                default:
-                    paramConditions.Add( (x, y) => x == y);
-                    break;
-            }
-        }
-
-        public bool CompareVariables(Symbol symbol, List<(char name, float value)> predecessorParams)
-        {
-            Debug.Log("Checking context parameters for symbol " + character);
-
-            // For each parameter of the symbol
-            for (int n = 0; n < symbol.parameters.Length; n++)
-            {
-                // If there are any parameter comparisons in the condition (symbol could be parametric but condition ignores it)
-                if (comparisonVariables.Count != 0) 
-                {
-                    // If the variable we are comparing param to is a float value, just compare it
-                    if (comparisonVariables[n].GetType() == typeof(float))
-                        return paramConditions[n](symbol.parameters[n], (float)comparisonVariables[n]);
-
-                    // If the variable we are comparing param to is a char name of a param, get the current value
-                    if (comparisonVariables[n].GetType() == typeof(char))
-                        foreach(var param in predecessorParams)
-                        {
-                            if (param.name == (char)comparisonVariables[n])
-                                return paramConditions[n](symbol.parameters[n], param.value);
-                        }
-                }
-            }
-            Debug.LogError("Something went wrong in context variable comparisons!");
-            return false;
-        }
-
-    }
+    private const char noName = '#';
 
     public void CompileRule()
     {
         successors = new List<Successor>();
-        //namedParams = new List<Dictionary<int, char[]>>();
         predecessorParams = new List<(char name, float value)>();
-        compiledContext = new Context();
         CompilePredecessor();
-        ReadContext();
+
+        compiledContext = new Context();
+        compiledContext.ReadContext(userContext);
+
         ReadCondition();
+
         foreach(var s in userSuccessors)
         {
             CompileSuccessor(s.Key, s.Value);
         }
-
-        /*foreach (var successor in successors)
-        {
-            string str = "";
-            foreach (var s in successor.symbols)
-            {
-                str += s.name;
-            }
-            Debug.Log("Successor " + str + ", probability " + successor.probability);
-
-        }*/
-
     }
 
 
@@ -193,11 +71,7 @@ public class Rule
         string[] tokens = argsContent.Split(',');
         for(int i = 0; i < tokens.Length; i++)
         {
-            if (tokens[i] == paramName)
-            {
-                //Debug.Log(str + $" ---> Parameter {paramName} index: " + i);
-                return i;
-            }
+            if (tokens[i] == paramName) return i;
         }
 
         // In case the parameter name was not found in the string, return -1
@@ -213,76 +87,14 @@ public class Rule
 
         string argsContent = predecessor.Substring(openBracket + 1, closeBracket - openBracket - 1);
         string[] tokens = argsContent.Split(',');
-        foreach(string str in tokens)
+        // Add parameter names with default value of 0
+        foreach (string str in tokens)
         {
-            //Debug.Log("Token: " + str);
-            //Debug.Log("<color=lime>Adding parameter named [" + str[0] + "] to processorParams</color>");
-            // Add parameter names with default value of 0
             predecessorParams.Add((str[0], 0));
         }
 
     }
 
-    // Context examples: AA_C, AF(>3,0)_C(<5), BB_, _X(=a, >1)
-    public void ReadContext()
-    {
-        if(userContext.Length == 0)
-        {
-            return;
-        }
-        // Remove any white spaces
-        userContext = Regex.Replace(userContext, @"\s+", "");
-
-        bool leftContext = true;
-        bool skipCharacters = false;
-        string condition = "";
-        ContextSymbol contextSymbol;
-        Debug.Log("Reading context");
-
-        for (int i = 0; i < userContext.Length; i++)
-        {
-            Debug.Log("CHAR: " + userContext[i]);
-            if (skipCharacters)
-            {
-                if (userContext[i] == ')' || userContext[i] == ',')
-                {
-                    if(userContext[i] == ')') skipCharacters = false;
-                    Debug.Log("Processing string " + condition);
-                    if (leftContext)
-                    {
-                        // Add to the symbol a parameter condition
-                        compiledContext.leftContext[compiledContext.leftContext.Count - 1].CompileParamComparisons(condition);
-                        condition = "";
-                    }
-                    else
-                    {
-                        compiledContext.rightContext[compiledContext.rightContext.Count - 1].CompileParamComparisons(condition);
-                        condition = "";
-                    }
-                }
-                else
-                {
-                    condition += userContext[i];
-                }
-                continue;
-            }
-            if (userContext[i] == '_') { leftContext = false; continue; }
-
-            if (userContext[i] == '(') { skipCharacters = true; continue; }
-
-            contextSymbol = new ContextSymbol(userContext[i]);
-            if (leftContext)
-            {
-                compiledContext.leftContext.Add(contextSymbol);
-            }
-            else
-            {
-                compiledContext.rightContext.Add(contextSymbol);
-            }
-        }
-        Debug.Log("Finished processing context");
-
-    }
 
     public void ReadCondition()
     {
@@ -315,7 +127,6 @@ public class Rule
         {
             Debug.LogError($"No value to compare parameter given in the parameter rule string! (predecessor {predecessor})");
         }
-        //Debug.Log($"Rule: {parameterRule[0]} {match} {matchNumber}, param index = {index}");
 
         float.TryParse(matchNumber.Value, out float value);
         switch (match.Value)
@@ -427,71 +238,19 @@ public class Rule
             // Assign parameter values to parameter names defined by the predecessor
             for (int i = 0; i < symbol.parameters.Length; i++)
             {
-                predecessorParams[i] = (predecessorParams[i].name, symbol.parameters[i]);
+                //Debug.Log("Symbol: " + symbol.character);
+                //predecessorParams[i] = (predecessorParams[i].name, symbol.parameters[i]);
+                //Debug.Log(" predecessorParams.count = " + predecessorParams.Count);
+                if (predecessorParams.Count <= i) predecessorParams.Add((noName, symbol.parameters[i]));
+                else predecessorParams[i] = (predecessorParams[i].name, symbol.parameters[i]);
             }
         }
 
         // If there is context condition to be checked
         if (userContext.Length > 0)
         {
-            Debug.Log("Checking context");
-            int firstIndex = symbolIndex - compiledContext.leftContext.Count;
-            //int lastIndex = symbolIndex + compiledContext.rightContext.Count;
-            if (firstIndex >= 0 && symbolIndex + compiledContext.rightContext.Count < currentWord.Count)
+            if(!compiledContext.DoesContextApply(currentWord, symbolIndex, predecessorParams))
             {
-                bool contextRuleApplies = true;
-
-                // If there is left context
-                if (compiledContext.leftContext.Count != 0) 
-                {
-                    List<Symbol> beforeSymbol = currentWord.GetRange(firstIndex, compiledContext.leftContext.Count);
-                    // Check if rule applies with symbol characters and their potential parameters
-                    // For each symbol on the left (from the amount picked earlier)
-                    for (int i = 0; i < beforeSymbol.Count; i++)
-                    {
-                        // If character is the same, check for parameter conditions. Otherwise context rule does not apply
-                        if (beforeSymbol[i].HasChar(compiledContext.leftContext[i].character))
-                        {
-                            if (beforeSymbol[i].IsParametric)
-                                contextRuleApplies = compiledContext.leftContext[i].CompareVariables(beforeSymbol[i], predecessorParams);
-                        }
-                        else
-                        {
-                            contextRuleApplies = false;
-                        }
-                    }
-                }
-                if(compiledContext.rightContext.Count != 0)
-                {
-                    List<Symbol> afterSymbol = currentWord.GetRange(symbolIndex + 1, compiledContext.rightContext.Count);
-                    for (int i = 0; i < afterSymbol.Count; i++)
-                    {
-                        // If character is the same, check for parameter conditions. Otherwise context rule does not apply
-                        if (afterSymbol[i].HasChar(compiledContext.rightContext[i].character))
-                        {
-                            if(afterSymbol[i].IsParametric)
-                                contextRuleApplies = compiledContext.rightContext[i].CompareVariables(afterSymbol[i], predecessorParams);
-                        }
-                        else
-                        {
-                            contextRuleApplies = false;
-                        }
-                    }
-                }
-                
-                if (contextRuleApplies)
-                {
-                    Debug.Log("<color=lime>Rule applies</color>");
-                }
-                else
-                {
-                    Debug.Log("<color=red>Rule does not apply</color>");
-                    return new List<Symbol>();
-                }
-            }
-            else
-            {
-                Debug.Log("<color=red>Rule does not apply - too many symbols in context</color>");
                 return new List<Symbol>();
             }
         }
@@ -499,44 +258,32 @@ public class Rule
         // If there are parameters
         if (symbol.IsParametric)
         {
-            // Assign parameter values to parameter names defined by the predecessor
-            /*for(int i = 0; i < symbol.parameters.Length; i++)
-            {
-                predecessorParams[i] = (predecessorParams[i].name, symbol.parameters[i]);
-            }*/ // ALREADY ASSIGNED EARLIER !!!
-
+            // If there are no conditions for parameters to check
             if(compiledParamCondition.func == null)
             {
-                //Debug.LogWarning($"No condition set for parametric rule: {predecessor} -> {userSuccessors}");
-                // repeat from IF below
-                Successor successor = GetWeightedRandomSuccessor();
-                List<Symbol> evaluatedSuccessor = successor.ApplyOperations(symbol, predecessorParams);
-                return evaluatedSuccessor;
+                // Return the successor symbols after applying operations to them
+                return ApplySuccessorOperations(symbol);
             }
-            //Debug.Log("Symbol has parameters, returning random parametric successor");
+
             if (compiledParamCondition.index > symbol.parameters.Length - 1)
             {
                 Debug.LogError($"Wrong rule - {predecessor} has not enough parameters!");
                 return new List<Symbol>() { };
             }
+
             // Get the parameter under index saved with the compiled comparison
             // and compare it to variable saved within comparison to check if the rule applies
             if (compiledParamCondition.func(symbol.parameters[compiledParamCondition.index]))
             {
-                // Check probabilities - get weighted random
-                Successor successor = GetWeightedRandomSuccessor();
-
-                // Apply operations to successor symbols
-                List<Symbol> evaluatedSuccessor = successor.ApplyOperations(symbol, predecessorParams);
-
                 // Return the successor (list of symbols)
-                return evaluatedSuccessor;
+                return ApplySuccessorOperations(symbol);
             }
             // If the comparison condition does not apply, assume other condition will and return empty list
             else
             {
                 return new List<Symbol>();
             }
+
         }
         // If there are no parameters, return the weighted random successor
         else if (successors.Count > 0)
@@ -550,6 +297,18 @@ public class Rule
             //Debug.Log("No rules/successors, returning the symbol");
             return new List<Symbol>() { symbol.Clone() };
         }
+    }
+
+    private List<Symbol> ApplySuccessorOperations(Symbol currentSymbol)
+    {
+        // Check probabilities - get weighted random
+        Successor successor = GetWeightedRandomSuccessor();
+
+        // Apply operations to successor symbols
+        List<Symbol> evaluatedSuccessor = successor.ApplyOperations(currentSymbol, predecessorParams);
+
+        // Return the successor (list of symbols)
+        return evaluatedSuccessor;
     }
 
 

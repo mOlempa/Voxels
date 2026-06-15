@@ -24,6 +24,7 @@ public struct Symbol
 
     [HideInInspector] public float[] parameters;
 
+
     /*[SerializedDictionary("Name", "Value")]
     [SerializeField] public SerializedDictionary<char, float> parameters;*/
     //public Dictionary<char, float> parameters;
@@ -83,29 +84,6 @@ public struct Symbol
 
     public bool IsParametric => parameters != null && parameters.Length > 0;
 
-    /*public bool isParametrized
-    {
-        get
-        {
-            if (parameters == null || parameters.Length == 0)
-                return false;
-            else
-                return true;
-        }
-    }*/
-
-
-    /*public bool isConstant
-    {
-        get
-        {
-            if (!isParametrized && (stringSuccessors == null || stringSuccessors.Count == 0))
-                return true;
-            else
-                return false;
-        }
-    }
-*/
     public void AssignParameterValues(string paramStr)
     {
         string numberStr = "";
@@ -130,33 +108,16 @@ public struct Symbol
         extractedParams.Add(v);
         parameters = extractedParams.ToArray();
 
-        /*if(extractedParams.Count == parameters.Count)
-        {
-            for(int i = 0; i < extractedParams.Count; i++)
-            {
-                parameters[i] = extractedParams[i];
-            }
-
-        }*/
     }
 
-    /*public List<Symbol> GetWeightedRandomSuccessor()
+
+    public static string GetSymbolListString(List<Symbol> list)
     {
-        int totalSum = successors.Values.Sum();
-        int random = UnityEngine.Random.Range(0, totalSum);
-        foreach (var kvp in successors)
+        string str = "";
+        foreach (Symbol s in list)
         {
-            // If random number is smaller than probability of the successor, return the successor
-            if (random <= kvp.Value)
-            {
-                return kvp.Key;
-            }
-            // Otherwise reduce random value by the probability of the current successor and go to the next one
-            random -= kvp.Value;
+            str += s.GetSymbolString();
         }
-        // If for any reason a successor was not chosen before, just return the original symbol
-        return new List<Symbol>() { this };
-
-    }*/
-
+        return str;
+    }
 }

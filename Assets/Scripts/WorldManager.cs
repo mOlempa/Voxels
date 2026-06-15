@@ -64,7 +64,7 @@ public class WorldManager : MonoBehaviour
         //return;
         //List<Vector3Int> points = GenerateLine(pointA, pointB);
 
-        List<Segment> segments = structureGenerator.ConvertSentenceToSegments(sentence);
+        List<Segment> segments = structureGenerator.ConvertSentenceToSegmentsOriginal(sentence);
 
         // No collision detection generation
         foreach (var segment in segments)
@@ -79,7 +79,7 @@ public class WorldManager : MonoBehaviour
                 };
         }
 
-        structureGenerator.ConvertSentenceToSegments2(sentence);
+        structureGenerator.ConvertSentenceToSegments(sentence);
 
         //int counter = 0;
         /*BranchCollisionHelper branchCollision = new BranchCollisionHelper();

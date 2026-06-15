@@ -10,12 +10,16 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a147ee174ac0df44f840182e32131490, type: 3}
-  m_Name: Test-8-2DparamFIx
+  m_Name: Test-11 PineTree
   m_EditorClassIdentifier: 
-  rootSentence: Y(10, 1)
+  rootSentence: A(40,10)
   definedSymbols:
-  - name: Y
-    character: 89
+  - name: A
+    character: 65
+    action: 0
+    parameters: []
+  - name: F
+    character: 70
     action: 1
     parameters: []
   - name: +
@@ -34,22 +38,44 @@ MonoBehaviour:
     character: 93
     action: 7
     parameters: []
-  - name: X
-    character: 88
+  - name: L
+    character: 76
+    action: 8
+    parameters: []
+  - name: o
+    character: 111
+    action: 4
+    parameters: []
+  - name: x
+    character: 120
+    action: 5
+    parameters: []
+  - name: Z
+    character: 90
     action: 1
     parameters: []
   rules:
-  - predecessor: Y(a,w)
+  - predecessor: A(a,w)
     userContext: 
-    condition: 
+    condition: w>5
     userSuccessors:
       _serializedList:
-      - Key: X(a, w)Y(a, w)
+      - Key: F(a,w)+(1)A(a,w-1)
         Value: 1
-  - predecessor: X(a,w)
-    userContext: X(=a,=1)_
-    condition: 
+      - Key: F(a,w)-(1)A(a,w-1)
+        Value: 1
+      - Key: F(a,w)A(a,w-1)
+        Value: 1
+  - predecessor: A(a,w)
+    userContext: 
+    condition: w==5
     userSuccessors:
       _serializedList:
-      - Key: X(a, w+1)X(a, w+1)X(a, w)
+      - Key: '[+(50)Z(a,w-1)]A(a,w)'
+        Value: 1
+      - Key: '[-(50)Z(a,w-1)]A(a,w)'
+        Value: 1
+      - Key: '[o(50)Z(a,w-1)]A(a,w)'
+        Value: 1
+      - Key: '[x(50)Z(a,w-1)]A(a,w)'
         Value: 1

@@ -18,7 +18,8 @@ public enum Action {
     RotateForward,
     RotateBackward,
     StartBranch,
-    EndBranch
+    EndBranch,
+    PlaceLeaf
 }
 
 

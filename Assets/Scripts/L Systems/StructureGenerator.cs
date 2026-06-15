@@ -57,6 +57,9 @@ public class StructureGenerator : MonoBehaviour
 {
     [SerializeField] public Grammar grammar;
     public bool enablePrintDebug = false;
+    //public bool ignoreThinBranchCollision = true;
+    [Range(0, 10)]
+    public int ignoreThinnerBranchCollision = 1;
 
     public int maxLength = 5;
     public int minLength = 3;
@@ -83,7 +86,7 @@ public class StructureGenerator : MonoBehaviour
     }
 
 
-    public List<Segment> ConvertSentenceToSegments2(List<Symbol> sentence)
+    public List<Segment> ConvertSentenceToSegments(List<Symbol> sentence)
     {
         if (grammar == null)
         {
@@ -245,6 +248,11 @@ public class StructureGenerator : MonoBehaviour
 
                     break;
 
+                case Action.PlaceLeaf:
+                    if (!branchCollision.cutChildBranches)
+                        GenerateLeaf(stack.Peek().position, Quaternion.Euler(stack.Peek().anglesDeg.x, stack.Peek().anglesDeg.y, stack.Peek().anglesDeg.z));
+                    break;
+
                 default:
                     break;
             }
@@ -255,6 +263,7 @@ public class StructureGenerator : MonoBehaviour
         return segments;
     }
 
+    
 
     private void GenerateSegment(ref Node currentNode, int randLength, int randAngle)
     {
@@ -278,7 +287,7 @@ public class StructureGenerator : MonoBehaviour
             positions = GenerateThickLine(segment);
             // If no collision detected, proceed with the branch
             if (!branchCollision.didCollide) break;
-            print("<color=cyan>Reassigning branch angle...</color>");
+            //print("<color=cyan>Reassigning branch angle...</color>");
             // If collision detected, assign new end node
             currentNode.position = savedPos + GetLocalEndpoint(randLength, currentNode.anglesDeg += GetRandomAngleChange(randAngle));
             segment.endPoint = currentNode;
@@ -305,7 +314,7 @@ public class StructureGenerator : MonoBehaviour
         }
     }
 
-    public List<Segment> ConvertSentenceToSegments(List<Symbol> sentence)
+    public List<Segment> ConvertSentenceToSegmentsOriginal(List<Symbol> sentence)
     {
         if (grammar == null)
         {
@@ -452,7 +461,11 @@ public class StructureGenerator : MonoBehaviour
                 {
                     default:
                     case 0:
-                        angle = (int)symbol.parameters[0];
+                        angle = Random.Range((int)symbol.parameters[0] - 5, (int)symbol.parameters[0] + 5);
+                        break;
+                    case 1:
+                        // Get a random between two angles if there are two values
+                        angle = Random.Range((int)symbol.parameters[0], (int)symbol.parameters[1]);
                         break;
                 }
             }
@@ -532,16 +545,36 @@ public class StructureGenerator : MonoBehaviour
 
                             Vector3Int voxelPos = new Vector3Int(point.x + x, point.y + y, point.z + z);
 
-                            // If it's occupied and we are out of the grace zone -> Collision!
+                            // If it's occupied and we are out of the grace zone it is a collision
                             if (!insideGraceZone && WorldManager.Instance.container[voxelPos].id != 0)
                             {
                                 //print($"<color=orange>Collision detected at {voxelPos}!\nVoxel id is {WorldManager.Instance.container[voxelPos].id}</color>");
                                 //print($"<color=yellow>Line {segment.startPos} --> {segment.endPos}</color>");
                                 //print($"(point - A).sqrMagnitude = {(point - segment.startPos).sqrMagnitude},  graceDistanceSquared = {graceDistanceSquared}");
-                                collisionDetected = true;
+
+                                // If small branch collisions can be ignored
+                                if (ignoreThinnerBranchCollision > 0)
+                                {
+                                    // If it is the small branches that collide with each other
+                                    if (WorldManager.Instance.container[voxelPos].id <= ignoreThinnerBranchCollision
+                                        && segment.thickness <= ignoreThinnerBranchCollision)
+                                    {
+                                        currentSpherePoints.Add(voxelPos);
+                                        continue;
+                                    }
+                                }
+                                // Make the small branches move away, big branches will ignore collisions with smaller
+                                if(segment.thickness <= WorldManager.Instance.container[voxelPos].id)
+                                {
+                                    collisionDetected = true;
+                                    branchCollision.collisionsCount++;
+                                    branchCollision.didCollide = true;
+                                    break;
+                                }
+                                /*collisionDetected = true;
                                 branchCollision.collisionsCount++;
                                 branchCollision.didCollide = true;
-                                break;
+                                break;*/
                             }
 
                             currentSpherePoints.Add(voxelPos);
@@ -552,13 +585,13 @@ public class StructureGenerator : MonoBehaviour
                 if (collisionDetected) break;
             }
 
-            // If we hit something outside the grace zone, stop growing the branch right here
+            // If hit something outside the grace zone, stop growing the branch right here
             if (collisionDetected)
             {
                 break;
             }
 
-            // Otherwise, commit these points to our branch
+            // Otherwise, commit these points to the branch
             foreach (var pos in currentSpherePoints)
             {
                 thickLine.Add(pos);
@@ -682,6 +715,56 @@ public class StructureGenerator : MonoBehaviour
         return points;
     }
 
+    private void GenerateLeaf(Vector3Int branchPointPos, Quaternion branchRot)
+    {
+        //print("Placing leaf at " + branchPointPos);
+
+        Vector3Int leafStart = leafLines.FirstOrDefault(x => x.y == 0); // find the leaf tail starting position
+
+        Vector3Int[] leafLinesCopy = leafLines.ToArray();
+        List<Vector3Int> newLeafPositions = new List<Vector3Int>();
+
+        for (int i = 0; i < leafLines.Length; i++)
+        {
+            if (i % 2 != 0)
+            {
+                //print($"int y = {leafLines[i].y}; y <= {leafLines[i - 1].y}; y++");
+                for (int y = leafLines[i-1].y; y <= leafLines[i].y; y++)
+                {
+                    Vector3Int vec = new Vector3Int(leafLines[i].x, y, leafLines[i].z);
+                    newLeafPositions.Add(vec);
+                    //print("Adding position " + vec);
+                }
+            }
+
+            /*leafLinesCopy[i] = leafLinesCopy[i] + branchPointPos - leafStart;
+            // if it is an ending line point (index is odd)
+            if (i%2 != 0)
+            {
+                newLeafPositions.AddRange(GenerateLine(leafLinesCopy[i - 1], leafLinesCopy[i]));
+            }*/
+        }
+
+
+        Vector3Int[] originalLeaves = newLeafPositions.ToArray();
+        //Vector3 connectionPoint = new Vector3(1, 0, 0); // Where the leaves attach to the branch
+
+        // The additional tilt for the leaves to have
+        Quaternion leafTilt = Quaternion.Euler(30f, 0f, 0f);
+
+        // Process the array
+        newLeafPositions = VoxelRotator.RotateLeaves(originalLeaves, leafStart, branchRot, leafTilt).ToList();
+
+
+        foreach (var pos in newLeafPositions)
+        {
+            WorldManager.Instance.container[pos + branchPointPos] = new Voxel()
+            {
+                id = 5
+            };
+        }
+    }
+
     static readonly Vector3[] angleDirection = new Vector3[7]
     {
         new Vector3(1, 0, 0),
@@ -692,4 +775,79 @@ public class StructureGenerator : MonoBehaviour
         new Vector3(1, 0, 1),
         new Vector3(1, 1, 1),
     };
+
+    static readonly Vector3Int[] leaf = new Vector3Int[12]
+    {
+        new Vector3Int(0, 2, 0),
+        new Vector3Int(0, 3, 0),
+        new Vector3Int(0, 4, 0),
+        new Vector3Int(1, 0, 0),
+        new Vector3Int(1, 1, 0),
+        new Vector3Int(1, 2, 0),
+        new Vector3Int(1, 3, 0),
+        new Vector3Int(1, 4, 0),
+        new Vector3Int(1, 5, 0),
+        new Vector3Int(2, 2, 0),
+        new Vector3Int(2, 3, 0),
+        new Vector3Int(2, 4, 0)
+    };
+
+    static readonly Vector3Int[] leafLines = new Vector3Int[10]
+    {
+        new Vector3Int(0, 3, 0),
+        new Vector3Int(0, 7, 0),
+        new Vector3Int(1, 2, 0),
+        new Vector3Int(1, 8, 0),
+        new Vector3Int(2, 0, 0),
+        new Vector3Int(2, 9, 0),
+        new Vector3Int(3, 2, 0),
+        new Vector3Int(3, 8, 0),
+        new Vector3Int(4, 3, 0),
+        new Vector3Int(4, 7, 0),
+    };
+
+}
+
+public static class VoxelRotator
+{
+    /// <summary>
+    /// Rotates an array of voxel positions around a pivot point.
+    /// </summary>
+    /// <param name="voxels">Original Vector3Int positions.</param>
+    /// <param name="pivot">The point around which to rotate.</param>
+    /// <param name="branchRotation">The base rotation of the branch.</param>
+    /// <param name="extraRotation">Additional rotation (e.g., turning away from the branch).</param>
+    /// <returns>A new array of rotated Vector3Int positions.</returns>
+    public static Vector3Int[] RotateLeaves(Vector3Int[] voxels, Vector3 pivot, Quaternion branchRotation, Quaternion extraRotation)
+    {
+        // In Unity, multiplying Quaternions combines their rotations.
+        // Reading right-to-left: it applies the extraRotation first, then the branchRotation.
+        Quaternion finalRotation = branchRotation * extraRotation;
+
+        Vector3Int[] rotatedVoxels = new Vector3Int[voxels.Length];
+
+        for (int i = 0; i < voxels.Length; i++)
+        {
+            // 1. Convert to float-based Vector3
+            Vector3 pos = voxels[i];
+
+            // 2. Find the position relative to the pivot
+            Vector3 dirFromPivot = pos - pivot;
+
+            // 3. Rotate the relative position
+            Vector3 rotatedDir = finalRotation * dirFromPivot;
+
+            // 4. Add the pivot back to get the final world/local position
+            Vector3 finalPos = pivot + rotatedDir;
+
+            // 5. Snap back to the voxel grid
+            rotatedVoxels[i] = new Vector3Int(
+                Mathf.RoundToInt(finalPos.x),
+                Mathf.RoundToInt(finalPos.y),
+                Mathf.RoundToInt(finalPos.z)
+            );
+        }
+
+        return rotatedVoxels;
+    }
 }

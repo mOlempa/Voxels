@@ -13,7 +13,7 @@ using UnityEngine;
 
 public class LSystemGenerator : MonoBehaviour
 {
-    [Range(0, 10)]
+    [Range(0, 30)]
     public int iterationLimit = 1;
     public Grammar grammar;
     public bool enablePrintDebug = false;

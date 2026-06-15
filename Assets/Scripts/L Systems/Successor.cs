@@ -42,6 +42,9 @@ public struct Successor
         int parametricSymbolOccurrenceIndex = -1;
         List<Symbol> symbolList = new List<Symbol>();
 
+        // return empty list if there are no successors
+        if (successorSymbols == null || successorSymbols.Count == 0) return symbolList;
+
         // Go through each symbol in the successor
         foreach (Symbol symbol in successorSymbols)
         {
@@ -62,6 +65,14 @@ public struct Successor
                     symbol.parameters[i] = indexedOperations[parametricSymbolOccurrenceIndex][i](p.value);
                     //Debug.Log($"Executing: {p.name} {p.value} [operation] = {symbol.parameters[i]}");
                 }
+            }
+            // If no params given, yet it is the same symbol that gets exchanged and there were parameters earlier, inherit them
+            else if(currentSymbol.IsParametric && symbol.HasChar(currentSymbol.character))
+            {
+                Symbol s = symbol.Clone();
+                s.parameters = currentSymbol.parameters;
+                symbolList.Add(s.Clone());
+                continue;
             }
             symbolList.Add(symbol.Clone());
         }
