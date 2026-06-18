@@ -44,6 +44,14 @@ public class WorldManager : MonoBehaviour
 
         container.Initialize(worldMaterial, Vector3.zero);
 
+
+        /*List<List<Symbol>> consecutiveSentences = lSystemGenerator.GenerateConsecutiveSentences();
+        for(int i = 0; i < consecutiveSentences.Count; i++)
+        {
+            structureGenerator.ConvertSentenceToSegments(consecutiveSentences[i]);
+        }*/
+
+
         //string sentence = lSystemGenerator.GenerateSentence();
         List<Symbol> sentence = lSystemGenerator.GenerateSentence();
         //return;

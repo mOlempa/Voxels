@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Text.RegularExpressions;
 using UnityEngine;
 
 public class SuccessorParser
@@ -18,16 +19,29 @@ public class SuccessorParser
             return;
         }
 
-        foreach (string token in tokens)
+        Symbol s = successor.successorSymbols.Last();
+        successor.successorSymbols.RemoveAt(successor.successorSymbols.Count - 1);
+        s.parameters = new float[tokens.Length];
+
+        for (int i = 0; i < tokens.Length; i++)
         {
-            if (string.IsNullOrWhiteSpace(token)) continue;
+            if (string.IsNullOrWhiteSpace(tokens[i])) continue;
+
+            // Check if the token is just a value
+            Match matchNumber = Regex.Match(tokens[i], @"(\d+)");
+            if (matchNumber.Success)
+            {
+                int.TryParse(tokens[i], out int value);
+                // Assign the value to the respective parameter
+                s.parameters[i] = value;
+            }
 
             // Find the single parameter name
-            char? paramChar = token.FirstOrDefault(char.IsLetter);
+            char? paramChar = tokens[i].FirstOrDefault(char.IsLetter);
 
             if (paramChar == null)
             {
-                throw new ArgumentException($"Token '{token}' does not contain a valid parameter name.");
+                throw new ArgumentException($"Token '{tokens[i]}' does not contain a valid parameter name.");
             }
 
             char paramName = paramChar.Value;
@@ -40,7 +54,7 @@ public class SuccessorParser
                 var parameter = Expression.Parameter(typeof(float), paramName.ToString());
 
                 // Parse the string token into an expression tree
-                var parser = new MathExpressionParser(token, paramName, parameter);
+                var parser = new MathExpressionParser(tokens[i], paramName, parameter);
                 Expression formulaBody = parser.Parse();
 
                 // Compile the expression tree into a Func<float, float>
@@ -56,10 +70,11 @@ public class SuccessorParser
             }
             catch (Exception ex)
             {
-                throw new FormatException($"Failed to parse token expression: '{token}'. Error: {ex.Message}", ex);
+                throw new FormatException($"Failed to parse token expression: '{tokens[i]}'. Error: {ex.Message}", ex);
             }
         }
         paramNames = parameterNamedInstances.ToArray();
+        successor.successorSymbols.Add(s);
         return;
     }
 

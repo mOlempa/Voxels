@@ -9,6 +9,7 @@ public struct Segment
     public int thickness;
     public int branchLevel;
     public int length;
+    public int parentThickness;
     public Vector3Int startPos
     {
         get

@@ -8,4 +8,5 @@ public struct Node
     public Vector3 anglesDeg;
     public int thickness;
     public int branchLevel;
+    public int prevNodeThickness;
 }

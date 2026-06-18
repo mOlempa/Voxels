@@ -10,13 +10,29 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a147ee174ac0df44f840182e32131490, type: 3}
-  m_Name: Grass Grammar
+  m_Name: Test Grass Grammar
   m_EditorClassIdentifier: 
   rootSentence: F
   definedSymbols:
-  - name: 
-    character: 0
-    action: 0
+  - name: F
+    character: 70
+    action: 1
+    parameters: []
+  - name: +
+    character: 43
+    action: 3
+    parameters: []
+  - name: '-'
+    character: 45
+    action: 2
+    parameters: []
+  - name: '['
+    character: 91
+    action: 6
+    parameters: []
+  - name: ']'
+    character: 93
+    action: 7
     parameters: []
   rules:
   - predecessor: F

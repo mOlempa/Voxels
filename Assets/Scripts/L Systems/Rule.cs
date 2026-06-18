@@ -140,7 +140,7 @@ public class Rule
 
         foreach (char c in pattern)
         {
-            //Debug.Log("CHAR " + c);
+            Debug.Log("CHAR " + c);
             // If a previous loop was processing parameters, skip characters until closing bracket
             if (skipCharacters)
             {
@@ -156,11 +156,10 @@ public class Rule
 
                         // Extract the arguments inside the brackets (e.g., "x+1,y*2")
                         string[] tokens = symbolParamString.Split(',');
-                        Symbol s = successor.successorSymbols.Last();
+                        /*Symbol s = successor.successorSymbols.Last();
                         successor.successorSymbols.RemoveAt(successor.successorSymbols.Count - 1);
                         s.parameters = new float[tokens.Length];
-                        successor.successorSymbols.Add(s);
-
+                        successor.successorSymbols.Add(s);*/
                         SuccessorParser.ParseParamOperations(tokens, ref successor, parametricSymbolOccurrenceIndex, out char[] names);
 
                         successor.namedParams.Add(parametricSymbolOccurrenceIndex, names);

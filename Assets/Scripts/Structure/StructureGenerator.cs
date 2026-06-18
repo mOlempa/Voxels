@@ -6,15 +6,13 @@ using UnityEngine.UIElements;
 using System.Linq;
 using static UnityEngine.Rendering.HableCurve;
 using static Utilities;
-
+using static GrowthBias;
 
 public class StructureGenerator : MonoBehaviour
 {
     [SerializeField] public Grammar grammar;
     public bool enablePrintDebug = false;
     //public bool ignoreThinBranchCollision = true;
-    [Range(0, 10)]
-    public int ignoreThinnerBranchCollision = 1;
 
     public int maxLength = 5;
     public int minLength = 3;
@@ -24,18 +22,65 @@ public class StructureGenerator : MonoBehaviour
     private Vector3 startingAngles = Vector3.zero;
     private BranchCollisionHelper branchCollision = new BranchCollisionHelper();
 
-    [Header("Branch Generation Retrial")]
+    [Header("Branch Collision Handling")]
+    [Range(0, 10)]
+    public int allowedBranchCollisionLevel = 1;
+    public GrowthBiasType collisionBranchGrowthBias = GrowthBiasType.None;
     [Range(1, 30)]
     public int branchTrialTimes = 1;
     [Range(0, 30)]
-    public int retryBranchAngleValue = 10;
-    private Vector3 GetRandomAngleChange(int currentAngleChange)
-    {
-        Vector3 angle = angleDirection[Random.Range(0, angleDirection.Length)] *
-            (Random.Range(minAngle, maxAngle)+retryBranchAngleValue) * (Random.Range(0, 1) == 1 ? 1 : -1);
+    public int collisionAngleOffset = 10;
 
-        //Vector3 angle = angleDirection[Random.Range(0, angleDirection.Length)] * retryBranchAngleValue * (Random.Range(0, 1) == 1 ? 1 : -1)
-        //angle.x = Mathf.Clamp(angle.x, randAngle)
+    [Range(0f, 1f)]
+    public float biasStrength = 1;
+
+    //For calculating local rotation for the branch with biased global growth direction
+    public Vector3 GetBiasedLocalRotation(Vector3 prevGlobalEuler, Vector3 biasDirection)
+    {
+        Quaternion prevGlobalRot = Quaternion.Euler(prevGlobalEuler);
+
+        // ONLY USED WHEN COLLISION DETECTED
+        float randomXAngle = Random.Range(-collisionAngleOffset, collisionAngleOffset);
+        float randomYAngle = Random.Range(-collisionAngleOffset, collisionAngleOffset);
+        Quaternion randomLocalRot = Quaternion.Euler(randomXAngle, randomYAngle, 0f);
+
+        Quaternion unbiasedGlobalRot;
+        if (branchCollision.didCollide) unbiasedGlobalRot = prevGlobalRot * randomLocalRot;
+        else unbiasedGlobalRot = prevGlobalRot;
+        //Debug.Log($"<color=yellow>what would be without bias: {unbiasedGlobalRot}</color>");
+
+        Vector3 unbiasedGlobalDir = unbiasedGlobalRot * Vector3.forward;
+        //Debug.Log($"<color=cyan>global forward vector: {unbiasedGlobalDir}</color>");
+
+        Vector3 biasedGlobalDir = Vector3.Slerp(unbiasedGlobalDir, biasDirection.normalized, biasStrength);
+        //Debug.Log($"<color=cyan> interpolated vector towards bias: {biasedGlobalDir}</color>");
+
+        // Using the previous rotation up vector to prevent the branch from unnaturally twisting along its own axis
+        Vector3 prevUp = prevGlobalRot * Vector3.up;
+        Quaternion newGlobalRot = Quaternion.LookRotation(biasedGlobalDir, prevUp);
+        //Debug.Log($"<color=lime>new global rotation: {newGlobalRot}</color>");
+        return newGlobalRot.eulerAngles;
+
+    }
+
+    private Vector3 GetRandomAngleChange(Vector3 currentAngles)
+    {
+        Vector3 angle;
+        if (collisionBranchGrowthBias != GrowthBiasType.None)
+        {
+            Vector3 globalDirDifference = currentAngles - GetDirection(collisionBranchGrowthBias);
+            //globalDirDifference = globalDirDifference.normalized;
+            angle = globalDirDifference + new Vector3(5, 5, 5) * Random.Range(0.1f, 1f);
+        }
+        else
+        {
+            Vector3 direction = angleDirections[Random.Range(0, angleDirections.Length)] * (Random.Range(0, 1) == 1 ? 1 : -1);
+            angle = direction * Random.Range(minAngle, maxAngle);
+        }
+        //Get some random overall angle, multiply it by a random from between predefined min and max,
+        //multiply it by random betwen 1 and -1 to increase 
+        /*Vector3 angle = angleDirections[Random.Range(0, angleDirections.Length)] *
+            (Random.Range(minAngle, maxAngle)) * (Random.Range(0, 1) == 1 ? 1 : -1);*/
 
         return angle;
     }
@@ -53,7 +98,7 @@ public class StructureGenerator : MonoBehaviour
         //printDebug($"<color=#{WorldManager.Instance.worldColors[0].color.ToHexString().TrimEnd("00")}>{WorldManager.Instance.worldColors[0].color.ToHexString()}</color>");
 
         Stack<Node> stack = new Stack<Node>();
-        stack.Push(new Node() { position = new Vector3Int(0, 0, 0), anglesDeg = startingAngles, thickness = maxThickness, branchLevel = 0 });
+        stack.Push(new Node() { position = new Vector3Int(0, 0, 0), anglesDeg = startingAngles, thickness = maxThickness, branchLevel = 0, prevNodeThickness = maxThickness });
         string final = $"";
         //final += $"<color=#{WorldManager.Instance.worldColors[maxThickness].color.ToHexString().TrimEnd("00")}>";
 
@@ -78,14 +123,15 @@ public class StructureGenerator : MonoBehaviour
                         {
                             branchCollision.cutChildBranches = false;
                             InterpretLineParams(symbol, ref randLength, ref currentNode.thickness);     // does thickness here get changed?
-                            GenerateSegment(ref currentNode, randLength, randAngle);
+                            GenerateSegment(ref currentNode, randLength);
+
                         }
                     }
                     else 
                     {
                         // If the symbol is parameterized, assign parameters to appropriate variables
                         InterpretLineParams(symbol, ref randLength, ref currentNode.thickness);     // does thickness here get changed?
-                        GenerateSegment(ref currentNode, randLength, randAngle);
+                        GenerateSegment(ref currentNode, randLength);
 
                     }
 
@@ -142,7 +188,9 @@ public class StructureGenerator : MonoBehaviour
                     {
                         position = stack.Peek().position,
                         anglesDeg = stack.Peek().anglesDeg,
-                        thickness = stack.Peek().thickness > 1 ? stack.Peek().thickness - 1 : 1,
+                        prevNodeThickness = stack.Peek().thickness,
+                        // decreasing the thickness by 1 each node by default (can be changed later by parameters)
+                        thickness = stack.Peek().thickness > 1 ? stack.Peek().thickness - 1 : 1, 
                         branchLevel = stack.Peek().branchLevel,
                     });
                     break;
@@ -174,17 +222,29 @@ public class StructureGenerator : MonoBehaviour
 
     
 
-    private void GenerateSegment(ref Node currentNode, int randLength, int randAngle)
+    private void GenerateSegment(ref Node currentNode, int randLength)
     {
         Segment segment = new Segment()
         {
             startPoint = currentNode,
             thickness = currentNode.thickness,
+            parentThickness = currentNode.prevNodeThickness,
             branchLevel = currentNode.branchLevel,
             length = randLength
         };
         Vector3Int savedPos = currentNode.position;
         currentNode.position = savedPos + GetLocalEndpoint(randLength, currentNode.anglesDeg);
+
+        // BIAS TESTING
+        //currentNode.position = savedPos + GetLocalEndpoint(randLength, currentNode.anglesDeg += GetRandomAngleChange(currentNode.anglesDeg));
+        /*currentNode.position = savedPos + GetLocalEndpoint(randLength, 
+            GetBiasedLocalRotation(currentNode.anglesDeg, GetDirection(branchGrowthBias)));*/
+
+        // Calculate branch end position
+        /*currentNode.position = savedPos + GetLocalEndpoint(randLength,
+            GetBiasedLocalRotation(currentNode.anglesDeg, GetDirection(branchGrowthBias)));*/
+
+
         segment.endPoint = currentNode;
         //print("Segment at level " + segment.branchLevel);
 
@@ -196,9 +256,21 @@ public class StructureGenerator : MonoBehaviour
             positions = GenerateThickLine(segment);
             // If no collision detected, proceed with the branch
             if (!branchCollision.didCollide) break;
-            //print("<color=cyan>Reassigning branch angle...</color>");
+            print("<color=cyan>Reassigning branch angle...</color>");
+            //print("GetLocalEndpoint(randLength, currentNode.anglesDeg): " + GetLocalEndpoint(randLength, currentNode.anglesDeg));
+
             // If collision detected, assign new end node
-            currentNode.position = savedPos + GetLocalEndpoint(randLength, currentNode.anglesDeg += GetRandomAngleChange(randAngle));
+            //currentNode.position = savedPos + GetLocalEndpoint(randLength, currentNode.anglesDeg += GetRandomAngleChange(currentNode.anglesDeg));
+            /*currentNode.position = savedPos + GetLocalEndpoint(randLength, 
+                GetBiasedLocalRotation(currentNode.anglesDeg, GetDirection(branchGrowthBias)));*/
+
+            Vector3 biasedDir = collisionBranchGrowthBias == GrowthBiasType.Branch ?
+                GetLocalEndpoint(randLength, currentNode.anglesDeg) : GetDirection(collisionBranchGrowthBias);
+
+            // Biased towards specific branch direction
+            currentNode.position = savedPos + GetLocalEndpoint(randLength,
+                GetBiasedLocalRotation(currentNode.anglesDeg, biasedDir));
+
             segment.endPoint = currentNode;
         }
         //List<Vector3Int> positions = GenerateThickLine(segment);
@@ -415,6 +487,10 @@ public class StructureGenerator : MonoBehaviour
 
         // The branch must clear its own thickness before it cares about collisions
         int graceDistanceSquared = (radius *3) * (radius*3);
+
+        // Make grace zone based on the size of the parent branch thickness
+        //int graceDistanceSquared = segment.parentThickness * segment.parentThickness * 2;
+        print($"graceDistanceSquared = {graceDistanceSquared}");
         //print($"<color=lime>New line {A} --> {B}</color>");
 
         // Applying a spherical brush around every point
@@ -446,12 +522,12 @@ public class StructureGenerator : MonoBehaviour
                                 //print($"<color=yellow>Line {segment.startPos} --> {segment.endPos}</color>");
                                 //print($"(point - A).sqrMagnitude = {(point - segment.startPos).sqrMagnitude},  graceDistanceSquared = {graceDistanceSquared}");
 
-                                // If small branch collisions can be ignored
-                                if (ignoreThinnerBranchCollision > 0)
+                                // If smaller branch collisions can be ignored
+                                if (allowedBranchCollisionLevel > 0)
                                 {
-                                    // If it is the small branches that collide with each other
-                                    if (WorldManager.Instance.container[voxelPos].id <= ignoreThinnerBranchCollision
-                                        && segment.thickness <= ignoreThinnerBranchCollision)
+                                    // If it is the smaller branches that collide with each other, ignore collision
+                                    if (WorldManager.Instance.container[voxelPos].id <= allowedBranchCollisionLevel
+                                        && segment.thickness <= allowedBranchCollisionLevel)
                                     {
                                         currentSpherePoints.Add(voxelPos);
                                         continue;
@@ -464,6 +540,10 @@ public class StructureGenerator : MonoBehaviour
                                     branchCollision.collisionsCount++;
                                     branchCollision.didCollide = true;
                                     break;
+                                }
+                                else
+                                {
+                                    print("<color=red>Collision BIG --> SMALL</color>");
                                 }
                                 /*collisionDetected = true;
                                 branchCollision.collisionsCount++;
@@ -546,7 +626,7 @@ public class StructureGenerator : MonoBehaviour
         }
     }
 
-    static readonly Vector3[] angleDirection = new Vector3[7]
+    static readonly Vector3[] angleDirections = new Vector3[7]
     {
         new Vector3(1, 0, 0),
         new Vector3(0, 1, 0),
