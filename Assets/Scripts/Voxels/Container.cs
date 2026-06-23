@@ -1,12 +1,14 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
+using static UnityEditor.Experimental.AssetDatabaseExperimental.AssetDatabaseCounters;
 
 [RequireComponent(typeof(MeshFilter))]
 [RequireComponent(typeof(MeshRenderer))]
 [RequireComponent(typeof(MeshCollider))]
 
-public class Container : MonoBehaviour
+public partial class Container : MonoBehaviour
 {
     public Vector3 position;
     public MeshFilter meshFilter;
@@ -16,12 +18,16 @@ public class Container : MonoBehaviour
     public Dictionary<Vector3, Voxel> data;
     public MeshData meshData = new MeshData();
 
+    public ComputeShader shader;
+
+
     public void Initialize(Material mat, Vector3 pos)
     {
         ConfigureComponent();
         data = new Dictionary<Vector3, Voxel>();
         meshRenderer.sharedMaterial = mat;
         position = pos;
+
     }
 
     public void ConfigureComponent()
@@ -35,6 +41,9 @@ public class Container : MonoBehaviour
     {
         data.Clear();
     }
+
+
+
 
     public void GenerateMesh()
     {
@@ -53,12 +62,13 @@ public class Container : MonoBehaviour
         foreach (KeyValuePair<Vector3, Voxel> kvp in data)
         {
             // don't check empty voxels
-            if(kvp.Value.id == 0) continue;
+            if (kvp.Value.id == 0) continue;
 
             blockPos = kvp.Key;
             block = kvp.Value;
 
-            voxelColor = WorldManager.Instance.worldColors[block.id - 1];   // cause 0 is air
+            if (block.id == 1) voxelColor = WorldManager.Instance.worldColors[5];   // id = 1 reserved for leaves
+            else voxelColor = WorldManager.Instance.worldColors[block.id - 2];   // cause 0 is air
             colorAlpha = voxelColor.color;
             colorAlpha.a = 1;
             smoothness = new Vector2(voxelColor.metallic, voxelColor.smoothness);
@@ -82,6 +92,7 @@ public class Container : MonoBehaviour
                     meshData.vertices.Add(faceVertices[voxelTris[i, j]]);
                     meshData.uvs.Add(faceUVs[voxelTris[i, j]]);
                     meshData.uvs2.Add(smoothness);
+                    meshData.uvs3.Add(new Vector2(block.id, 0));
                     meshData.colors.Add(colorAlpha);
                     meshData.triangles.Add(counter++);
                 }
@@ -179,3 +190,4 @@ public class Container : MonoBehaviour
     };
 
 }
+

@@ -1,0 +1,117 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a147ee174ac0df44f840182e32131490, type: 3}
+  m_Name: PineTree3D Base 1
+  m_EditorClassIdentifier: 
+  rootSentence: A(10)
+  definedSymbols:
+  - name: A
+    character: 65
+    action: 0
+    parameters: []
+  - name: B
+    character: 66
+    action: 0
+    parameters: []
+  - name: C
+    character: 67
+    action: 0
+    parameters: []
+  - name: F
+    character: 70
+    action: 1
+    parameters: []
+  - name: L
+    character: 76
+    action: 8
+    parameters: []
+  - name: +
+    character: 43
+    action: 3
+    parameters: []
+  - name: '-'
+    character: 45
+    action: 2
+    parameters: []
+  - name: o
+    character: 111
+    action: 4
+    parameters: []
+  - name: x
+    character: 120
+    action: 5
+    parameters: []
+  - name: '['
+    character: 91
+    action: 6
+    parameters: []
+  - name: ']'
+    character: 93
+    action: 7
+    parameters: []
+  - name: '@'
+    character: 64
+    action: 9
+    parameters: []
+  rules:
+  - predecessor: A(v)
+    userContext: 
+    condition: v>0
+    userSuccessors:
+      _serializedList:
+      - Key: '[+F(v*2)B(v)][-F(v*2)B(v)]F(v*5)A(v-1)'
+        Value: 1
+      - Key: '[oF(v*2)B(v)][xF(v*2)B(v)]F(v*5)A(v-1)'
+        Value: 1
+      - Key: '[oF(v*2)B(v)][-F(v*2)B(v)]F(v*5)A(v-1)'
+        Value: 1
+      - Key: '[oF(v*2)B(v)][+F(v*2)B(v)]F(v*5)A(v-1)'
+        Value: 1
+      - Key: '[xF(v*2)B(v)][+F(v*2)B(v)]F(v*5)A(v-1)'
+        Value: 1
+      - Key: '[xF(v*2)B(v)][-F(v*2)B(v)]F(v*5)A(v-1)'
+        Value: 1
+  - predecessor: B(v)
+    userContext: 
+    condition: v>0
+    userSuccessors:
+      _serializedList:
+      - Key: F(v*2)[+C(v-2)][-C(v-2)]B(v-1)
+        Value: 1
+  - predecessor: C(v)
+    userContext: 
+    condition: v>0
+    userSuccessors:
+      _serializedList:
+      - Key: F(v)C(v-1)
+        Value: 1
+  - predecessor: A(v)
+    userContext: 
+    condition: v<=0
+    userSuccessors:
+      _serializedList:
+      - Key: '#'
+        Value: 1
+  - predecessor: B(v)
+    userContext: 
+    condition: v<=0
+    userSuccessors:
+      _serializedList:
+      - Key: '#'
+        Value: 1
+  - predecessor: C(v)
+    userContext: 
+    condition: v<=0
+    userSuccessors:
+      _serializedList:
+      - Key: '#'
+        Value: 1

@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Text;
 using UnityEngine;
 using UnityEngine.TextCore.Text;
 
@@ -64,17 +65,18 @@ public struct Symbol
 
     public string GetSymbolString()
     {
+        StringBuilder s = new StringBuilder("");
         if (IsParametric)
         {
-            string s = name + "(";
+            s.Append(name + "(");
             foreach(var p in parameters)
             {
-                s += p.ToString(new CultureInfo("en-US"));
-                s += ",";
+                s.Append(p.ToString(new CultureInfo("en-US")));
+                s.Append(",");
             }
-            s = s.Remove(s.Length - 1);
-            s += ")";
-            return s;
+            s = s.Remove(s.Length - 1, 1);
+            s.Append(")");
+            return s.ToString();
         }
         else
         {
@@ -113,11 +115,18 @@ public struct Symbol
 
     public static string GetSymbolListString(List<Symbol> list)
     {
-        string str = "";
+        StringBuilder str = new StringBuilder("");
+        foreach (Symbol s in list)
+        {
+            str.Append(s.GetSymbolString());
+        }
+        return str.ToString();
+
+        /*string str = "";
         foreach (Symbol s in list)
         {
             str += s.GetSymbolString();
         }
-        return str;
+        return str;*/
     }
 }

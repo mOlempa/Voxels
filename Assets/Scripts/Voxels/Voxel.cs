@@ -5,6 +5,7 @@ using UnityEngine;
 public class Voxel
 {
     public byte id;
+    public ushort branchId;
     public bool isSolid
     {
         get

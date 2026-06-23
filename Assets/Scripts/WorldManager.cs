@@ -44,22 +44,10 @@ public class WorldManager : MonoBehaviour
 
         container.Initialize(worldMaterial, Vector3.zero);
 
-
-        /*List<List<Symbol>> consecutiveSentences = lSystemGenerator.GenerateConsecutiveSentences();
-        for(int i = 0; i < consecutiveSentences.Count; i++)
-        {
-            structureGenerator.ConvertSentenceToSegments(consecutiveSentences[i]);
-        }*/
-
-
-        //string sentence = lSystemGenerator.GenerateSentence();
         List<Symbol> sentence = lSystemGenerator.GenerateSentence();
-        //return;
-        //List<Vector3Int> points = GenerateLine(pointA, pointB);
-
-        List<Segment> segments = structureGenerator.ConvertSentenceToSegmentsOriginal(sentence);
 
         // No collision detection generation
+        /*List<Segment> segments = structureGenerator.ConvertSentenceToSegmentsOriginal(sentence);
         foreach (var segment in segments)
         {
             List<Vector3Int> positions = GenerateThickLineOriginal(segment.startPos, segment.endPos, segment.thickness);
@@ -70,10 +58,10 @@ public class WorldManager : MonoBehaviour
                     //id = 1
                     id = worldColors.Length > segment.thickness ? (byte)segment.thickness : (byte)1
                 };
-        }
+        }*/
 
+        // Collision detection generation
         structureGenerator.ConvertSentenceToSegments(sentence);
-
 
         container.GenerateMesh();
         container.UploadMesh();

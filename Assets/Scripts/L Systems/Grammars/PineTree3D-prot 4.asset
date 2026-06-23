@@ -1,0 +1,177 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a147ee174ac0df44f840182e32131490, type: 3}
+  m_Name: PineTree3D-prot 4
+  m_EditorClassIdentifier: 
+  rootSentence: T(30, 1)A(15)
+  definedSymbols:
+  - name: A
+    character: 65
+    action: 0
+    parameters: []
+  - name: B
+    character: 66
+    action: 0
+    parameters: []
+  - name: C
+    character: 67
+    action: 0
+    parameters: []
+  - name: T
+    character: 84
+    action: 1
+    parameters: []
+  - name: F
+    character: 70
+    action: 1
+    parameters: []
+  - name: Z
+    character: 90
+    action: 1
+    parameters: []
+  - name: L
+    character: 76
+    action: 8
+    parameters: []
+  - name: +
+    character: 43
+    action: 3
+    parameters: []
+  - name: '-'
+    character: 45
+    action: 2
+    parameters: []
+  - name: o
+    character: 111
+    action: 4
+    parameters: []
+  - name: x
+    character: 120
+    action: 5
+    parameters: []
+  - name: '['
+    character: 91
+    action: 6
+    parameters: []
+  - name: ']'
+    character: 93
+    action: 7
+    parameters: []
+  - name: '@'
+    character: 64
+    action: 10
+    parameters: []
+  rules:
+  - predecessor: A(v)
+    userContext: 
+    condition: v>10
+    userSuccessors:
+      _serializedList:
+      - Key: '[rF(v, 1)B(10)][qF(v, 1)B(10)]T(v, 1)A(v-1)'
+        Value: 1
+      - Key: '[rF(v, 1)B(10)][rF(v, 1)B(10)][qF(v, 1)B(10)]T(v, 1)A(v-1)'
+        Value: 2
+      - Key: '[rF(v, 1)B(10)][rF(v, 1)B(10)][qF(v, 1)B(10)][qF(v, 1)B(10)]T(v, 1)A(v-1)'
+        Value: 10
+  - predecessor: A(v)
+    userContext: 
+    condition: v>0
+    userSuccessors:
+      _serializedList:
+      - Key: '[rF(v, 1)B(v)][qF(v, 1)B(v)]T(v, 1)A(v-1)'
+        Value: 2
+      - Key: '[rF(v, 1)B(v)][rF(v, 1)B(v)][qF(v, 1)B(v)]T(v, 1)A(v-1)'
+        Value: 3
+      - Key: '[rF(v, 1)B(v)][rF(v, 1)B(v)][qF(v, 1)B(v)][qF(v, 1)B(v)]T(v, 1)A(v-1)'
+        Value: 20
+  - predecessor: B(v)
+    userContext: 
+    condition: v>0
+    userSuccessors:
+      _serializedList:
+      - Key: F(v*2,1)[+(40)o(15)C(v-2)][-(40)x(15)C(v-2)]B(v-1)
+        Value: 1
+  - predecessor: C(v)
+    userContext: 
+    condition: v>0
+    userSuccessors:
+      _serializedList:
+      - Key: Z(v,1)C(v-1)
+        Value: 1
+  - predecessor: A(v)
+    userContext: 
+    condition: v<=0
+    userSuccessors:
+      _serializedList:
+      - Key: '#'
+        Value: 1
+  - predecessor: B(v)
+    userContext: 
+    condition: v<=0
+    userSuccessors:
+      _serializedList:
+      - Key: '#'
+        Value: 1
+  - predecessor: C(v)
+    userContext: 
+    condition: v<=0
+    userSuccessors:
+      _serializedList:
+      - Key: '#'
+        Value: 1
+  - predecessor: r
+    userContext: 
+    condition: 
+    userSuccessors:
+      _serializedList:
+      - Key: +o(90)
+        Value: 2
+      - Key: x+(45)
+        Value: 2
+      - Key: o
+        Value: 2
+      - Key: o+(45)
+        Value: 2
+  - predecessor: q
+    userContext: 
+    condition: 
+    userSuccessors:
+      _serializedList:
+      - Key: o-(45)
+        Value: 2
+      - Key: -o(90)
+        Value: 2
+      - Key: x
+        Value: 2
+      - Key: x-(45)
+        Value: 2
+  - predecessor: F(a,w)
+    userContext: 
+    condition: w<2
+    userSuccessors:
+      _serializedList:
+      - Key: F(a, w+1)
+        Value: 1
+  - predecessor: T(a,w)
+    userContext: 
+    condition: w<8
+    userSuccessors:
+      _serializedList:
+      - Key: T(a+1, w+1/2)
+        Value: 1
+  - predecessor: T(a,w)
+    userContext: 
+    condition: w>=8
+    userSuccessors:
+      _serializedList:
+      - Key: T(a+1, w)
+        Value: 1

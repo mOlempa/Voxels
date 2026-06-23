@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a147ee174ac0df44f840182e32131490, type: 3}
   m_Name: Test-11 PineTree 1
   m_EditorClassIdentifier: 
-  rootSentence: FA(0)
+  rootSentence: A(10)
   definedSymbols:
   - name: A
     character: 65
@@ -52,20 +52,52 @@ MonoBehaviour:
     parameters: []
   - name: B
     character: 66
-    action: 1
+    action: 0
+    parameters: []
+  - name: C
+    character: 67
+    action: 0
     parameters: []
   rules:
-  - predecessor: A(a)
+  - predecessor: A(v)
     userContext: 
-    condition: 
+    condition: v>0
     userSuccessors:
       _serializedList:
-      - Key: '[-FB(a)][+FB(a)]FA(a+10)'
+      - Key: '[+F(v*2)B(v)][-F(v*2)B(v)]F(v*5)A(v-1)'
         Value: 1
-  - predecessor: B(a)
+  - predecessor: B(v)
     userContext: 
-    condition: a>0
+    condition: v>0
     userSuccessors:
       _serializedList:
-      - Key: FB(v-10)
+      - Key: F(v*2)[+C(v-2)][-C(v-2)]B(v-1)
+        Value: 1
+  - predecessor: C(v)
+    userContext: 
+    condition: v>0
+    userSuccessors:
+      _serializedList:
+      - Key: F(v)C(v-1)
+        Value: 1
+  - predecessor: A(v)
+    userContext: 
+    condition: v<=0
+    userSuccessors:
+      _serializedList:
+      - Key: '#'
+        Value: 1
+  - predecessor: B(v)
+    userContext: 
+    condition: v<=0
+    userSuccessors:
+      _serializedList:
+      - Key: '#'
+        Value: 1
+  - predecessor: C(v)
+    userContext: 
+    condition: v<=0
+    userSuccessors:
+      _serializedList:
+      - Key: '#'
         Value: 1

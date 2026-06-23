@@ -153,6 +153,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   lSystemGenerator: {fileID: 1659058146}
   structureGenerator: {fileID: 1659058148}
+  generateSmoothMesh: 0
   worldColors:
   - color: {r: 0.7132075, g: 0, b: 0.062137056, a: 0}
     smoothness: 0
@@ -180,6 +181,7 @@ MonoBehaviour:
     metallic: 0
   worldMaterial: {fileID: 2100000, guid: 0f4233433586daa4cad5c55804f3cb26, type: 2}
   container: {fileID: 0}
+  marchingCubesShader: {fileID: 7200000, guid: b27f34e5c17af3a4cb697643088c7536, type: 3}
 --- !u!4 &50973649
 Transform:
   m_ObjectHideFlags: 0
@@ -324,6 +326,7 @@ GameObject:
   - component: {fileID: 963194228}
   - component: {fileID: 963194227}
   - component: {fileID: 963194226}
+  - component: {fileID: 963194229}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -349,7 +352,7 @@ Camera:
   m_Enabled: 1
   serializedVersion: 2
   m_ClearFlags: 1
-  m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
+  m_BackGroundColor: {r: 0, g: 0, b: 0, a: 1}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0
@@ -405,6 +408,50 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &963194229
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 963194225}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a79441f348de89743a2939f4d699eac1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_RenderShadows: 1
+  m_RequiresDepthTextureOption: 2
+  m_RequiresOpaqueTextureOption: 2
+  m_CameraType: 0
+  m_Cameras: []
+  m_RendererIndex: -1
+  m_VolumeLayerMask:
+    serializedVersion: 2
+    m_Bits: 1
+  m_VolumeTrigger: {fileID: 0}
+  m_VolumeFrameworkUpdateModeOption: 2
+  m_RenderPostProcessing: 0
+  m_Antialiasing: 0
+  m_AntialiasingQuality: 2
+  m_StopNaN: 0
+  m_Dithering: 0
+  m_ClearDepth: 1
+  m_AllowXRRendering: 1
+  m_AllowHDROutput: 1
+  m_UseScreenCoordOverride: 0
+  m_ScreenSizeOverride: {x: 0, y: 0, z: 0, w: 0}
+  m_ScreenCoordScaleBias: {x: 0, y: 0, z: 0, w: 0}
+  m_RequiresDepthTexture: 0
+  m_RequiresColorTexture: 0
+  m_Version: 2
+  m_TaaSettings:
+    m_Quality: 3
+    m_FrameInfluence: 0.1
+    m_JitterScale: 1
+    m_MipBias: 0
+    m_VarianceClampScale: 0.9
+    m_ContrastAdaptiveSharpening: 0
 --- !u!1 &1659058145
 GameObject:
   m_ObjectHideFlags: 0
@@ -435,8 +482,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 674c5882d7ca282478663dca862dfc7e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  iterationLimit: 3
-  grammar: {fileID: 11400000, guid: 4cd9bac9ebf287e42a38485bda2d7e1c, type: 2}
+  iterationLimit: 7
+  grammar: {fileID: 11400000, guid: 895e1da37c69a3147a3839582bf2c990, type: 2}
   enablePrintDebug: 1
 --- !u!4 &1659058147
 Transform:
@@ -465,18 +512,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 46294efac7a0bd94abeaa43c8eaead4b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  grammar: {fileID: 11400000, guid: 4cd9bac9ebf287e42a38485bda2d7e1c, type: 2}
+  lSystemGenerator: {fileID: 0}
   enablePrintDebug: 0
-  maxLength: 10
-  minLength: 5
-  maxAngle: 30
-  minAngle: 10
-  maxThickness: 2
+  maxLength: 40
+  minLength: 30
+  maxAngle: 75
+  minAngle: 60
+  maxThickness: 4
   allowedBranchCollisionLevel: 0
-  collisionBranchGrowthBias: 3
+  collisionBranchGrowthBias: 2
   branchTrialTimes: 7
-  collisionAngleOffset: 27
+  collisionAngleOffset: 12
   biasStrength: 0.157
+  assignableBranchId: 0
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

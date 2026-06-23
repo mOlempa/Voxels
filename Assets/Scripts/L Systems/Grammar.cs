@@ -19,7 +19,9 @@ public enum Action {
     RotateBackward,
     StartBranch,
     EndBranch,
-    PlaceLeaf
+    PlaceLeaf,
+    RotateRandomDir,
+    RotateAxis
 }
 
 

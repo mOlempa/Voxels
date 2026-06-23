@@ -8,9 +8,12 @@ using static UnityEngine.Rendering.HableCurve;
 using static Utilities;
 using static GrowthBias;
 
+
 public class StructureGenerator : MonoBehaviour
 {
-    [SerializeField] public Grammar grammar;
+    //[SerializeField] public Grammar grammar;
+    [SerializeField] public LSystemGenerator lSystemGenerator;
+    private Grammar grammar;
     public bool enablePrintDebug = false;
     //public bool ignoreThinBranchCollision = true;
 
@@ -33,6 +36,22 @@ public class StructureGenerator : MonoBehaviour
 
     [Range(0f, 1f)]
     public float biasStrength = 1;
+
+    public ushort assignableBranchId = 0;
+
+    private void Awake()
+    {
+        lSystemGenerator = GetComponent<LSystemGenerator>();
+        if (lSystemGenerator == null)
+        {
+            Debug.LogWarning("No L-system generator component to get grammar from!");
+            gameObject.SetActive(false);
+        }
+        else
+        {
+            grammar = lSystemGenerator.grammar;
+        }
+    }
 
     //For calculating local rotation for the branch with biased global growth direction
     public Vector3 GetBiasedLocalRotation(Vector3 prevGlobalEuler, Vector3 biasDirection)
@@ -90,16 +109,25 @@ public class StructureGenerator : MonoBehaviour
     {
         if (grammar == null)
         {
-            Debug.LogError("No grammar referenced in Structure Generator!!");
-            return new List<Segment>();
+            if(lSystemGenerator != null) grammar = lSystemGenerator.grammar;
+            if(grammar == null)
+            {
+                Debug.LogWarning("No grammar referenced in Structure Generator!!");
+                return new List<Segment>();
+            }
         }
         List<Segment> segments = new List<Segment>();
 
         //printDebug($"<color=#{WorldManager.Instance.worldColors[0].color.ToHexString().TrimEnd("00")}>{WorldManager.Instance.worldColors[0].color.ToHexString()}</color>");
 
         Stack<Node> stack = new Stack<Node>();
-        stack.Push(new Node() { position = new Vector3Int(0, 0, 0), anglesDeg = startingAngles, thickness = maxThickness, branchLevel = 0, prevNodeThickness = maxThickness });
-        string final = $"";
+        stack.Push(new Node() { 
+            position = new Vector3Int(0, 0, 0), 
+            anglesDeg = startingAngles, 
+            thickness = maxThickness, 
+            branchLevel = 0, 
+            prevNodeThickness = maxThickness
+        });
         //final += $"<color=#{WorldManager.Instance.worldColors[maxThickness].color.ToHexString().TrimEnd("00")}>";
 
         foreach (var symbol in sentence)
@@ -112,7 +140,6 @@ public class StructureGenerator : MonoBehaviour
             {
                 case Action.PlaceLine:
                     printDebug($"Symbol {symbol.name}, placing line");
-                    final += symbol.name;
 
                     currentNode = stack.Pop();
                     randLength = UnityEngine.Random.Range(minLength, maxLength);
@@ -143,8 +170,6 @@ public class StructureGenerator : MonoBehaviour
                     printDebug($"Symbol {symbol.name}, rotating right");
 
                     InterpretRotationalParams(symbol, ref randAngle);
-
-                    final += symbol.name;
                     currentNode = stack.Pop();
                     currentNode.anglesDeg.x += randAngle;
                     stack.Push(currentNode);
@@ -154,8 +179,6 @@ public class StructureGenerator : MonoBehaviour
                     printDebug($"Symbol {symbol.name}, rotating left");
 
                     InterpretRotationalParams(symbol, ref randAngle);
-
-                    final += symbol.name;
                     currentNode = stack.Pop();
                     currentNode.anglesDeg.x -= randAngle;
                     stack.Push(currentNode);
@@ -164,7 +187,7 @@ public class StructureGenerator : MonoBehaviour
                 case Action.RotateForward:
                     printDebug($"Symbol {symbol.name}, rotating forward");
 
-                    final += symbol.name;
+                    InterpretRotationalParams(symbol, ref randAngle);
                     currentNode = stack.Pop();
                     currentNode.anglesDeg.y += randAngle;
                     stack.Push(currentNode);
@@ -173,53 +196,73 @@ public class StructureGenerator : MonoBehaviour
                 case Action.RotateBackward:
                     printDebug($"Symbol {symbol.name}, rotating backward");
 
-                    final += symbol.name;
+                    InterpretRotationalParams(symbol, ref randAngle);
                     currentNode = stack.Pop();
                     currentNode.anglesDeg.y -= randAngle;
                     stack.Push(currentNode);
                     break;
 
+                case Action.RotateAxis:
+                    printDebug($"Symbol {symbol.name}, rotating axis");
+
+                    InterpretRotationalParams(symbol, ref randAngle);
+                    currentNode = stack.Pop();
+                    currentNode.anglesDeg.z += randAngle;
+                    stack.Push(currentNode);
+                    break;
+
+                case Action.RotateRandomDir:
+                    printDebug($"Symbol {symbol.name}, rotating random");
+                    currentNode = stack.Pop();
+
+                    // Choose the amount of direcitons in the mix (for example +, -o, ++
+                    int n = Random.Range(0, 2);
+                    for(int i = 0; i < n; i++)
+                    {
+                        int rand = Random.Range(0, 4);
+                    }
+
+
+                    stack.Push(currentNode);
+                    break;
+
                 case Action.StartBranch:
                     printDebug($"Symbol {symbol.name}, starting branch");
-                    //final += $"</color>";
-                    //final += $"<color=#{WorldManager.Instance.worldColors[stack.Peek().thickness > 1 ? stack.Peek().thickness - 1 : 1].color.ToHexString().TrimEnd("00")}>";
-                    final += symbol.name;
                     stack.Push(new Node()
                     {
                         position = stack.Peek().position,
                         anglesDeg = stack.Peek().anglesDeg,
                         prevNodeThickness = stack.Peek().thickness,
+                        branchId = (ushort)(assignableBranchId + 1),
+                        parentBranchId = stack.Peek().branchId,
                         // decreasing the thickness by 1 each node by default (can be changed later by parameters)
                         thickness = stack.Peek().thickness > 1 ? stack.Peek().thickness - 1 : 1, 
                         branchLevel = stack.Peek().branchLevel,
                     });
+                    assignableBranchId++;
                     break;
 
                 case Action.EndBranch:
                     printDebug($"Symbol {symbol.name}, ending branch");
-                    final += symbol.name;
-                    //final += $"</color>";
-                    //final += $"<color=#{WorldManager.Instance.worldColors[stack.Peek().thickness].color.ToHexString().TrimEnd("00")}>";
-
                     stack.Pop();
 
                     break;
 
                 case Action.PlaceLeaf:
                     if (!branchCollision.cutChildBranches)
-                        GenerateLeaf(stack.Peek().position, Quaternion.Euler(stack.Peek().anglesDeg.x, stack.Peek().anglesDeg.y, stack.Peek().anglesDeg.z));
+                        GenerateLeaf(stack.Peek().position, Quaternion.Euler(
+                            stack.Peek().anglesDeg.x, 
+                            stack.Peek().anglesDeg.y, 
+                            stack.Peek().anglesDeg.z));
                     break;
 
                 default:
                     break;
             }
         }
-        //final += $"</color>";
-        printDebug(final);
 
         return segments;
     }
-
     
 
     private void GenerateSegment(ref Node currentNode, int randLength)
@@ -230,20 +273,12 @@ public class StructureGenerator : MonoBehaviour
             thickness = currentNode.thickness,
             parentThickness = currentNode.prevNodeThickness,
             branchLevel = currentNode.branchLevel,
-            length = randLength
+            length = randLength,
+            branchId = currentNode.branchId,    // TODO: couldn't we use startPoint Node for these values?
+            parentBranchId = currentNode.parentBranchId,
         };
         Vector3Int savedPos = currentNode.position;
         currentNode.position = savedPos + GetLocalEndpoint(randLength, currentNode.anglesDeg);
-
-        // BIAS TESTING
-        //currentNode.position = savedPos + GetLocalEndpoint(randLength, currentNode.anglesDeg += GetRandomAngleChange(currentNode.anglesDeg));
-        /*currentNode.position = savedPos + GetLocalEndpoint(randLength, 
-            GetBiasedLocalRotation(currentNode.anglesDeg, GetDirection(branchGrowthBias)));*/
-
-        // Calculate branch end position
-        /*currentNode.position = savedPos + GetLocalEndpoint(randLength,
-            GetBiasedLocalRotation(currentNode.anglesDeg, GetDirection(branchGrowthBias)));*/
-
 
         segment.endPoint = currentNode;
         //print("Segment at level " + segment.branchLevel);
@@ -256,13 +291,7 @@ public class StructureGenerator : MonoBehaviour
             positions = GenerateThickLine(segment);
             // If no collision detected, proceed with the branch
             if (!branchCollision.didCollide) break;
-            print("<color=cyan>Reassigning branch angle...</color>");
-            //print("GetLocalEndpoint(randLength, currentNode.anglesDeg): " + GetLocalEndpoint(randLength, currentNode.anglesDeg));
-
-            // If collision detected, assign new end node
-            //currentNode.position = savedPos + GetLocalEndpoint(randLength, currentNode.anglesDeg += GetRandomAngleChange(currentNode.anglesDeg));
-            /*currentNode.position = savedPos + GetLocalEndpoint(randLength, 
-                GetBiasedLocalRotation(currentNode.anglesDeg, GetDirection(branchGrowthBias)));*/
+            //print("<color=cyan>Reassigning branch angle...</color>");
 
             Vector3 biasedDir = collisionBranchGrowthBias == GrowthBiasType.Branch ?
                 GetLocalEndpoint(randLength, currentNode.anglesDeg) : GetDirection(collisionBranchGrowthBias);
@@ -285,11 +314,13 @@ public class StructureGenerator : MonoBehaviour
         }
         else
         {
+            // Generate segment's voxels
             foreach (var pos in positions)
                 WorldManager.Instance.container[pos] = new Voxel()
                 {
                     //id = 1
-                    id = WorldManager.Instance.worldColors.Length > segment.thickness ? (byte)segment.thickness : (byte)1
+                    id = WorldManager.Instance.worldColors.Length > segment.thickness ? (byte)(segment.thickness+1) : (byte)2,
+                    branchId = segment.branchId,
                 };
             //segments.Add(segment);
         }
@@ -490,7 +521,7 @@ public class StructureGenerator : MonoBehaviour
 
         // Make grace zone based on the size of the parent branch thickness
         //int graceDistanceSquared = segment.parentThickness * segment.parentThickness * 2;
-        print($"graceDistanceSquared = {graceDistanceSquared}");
+        //print($"graceDistanceSquared = {graceDistanceSquared}");
         //print($"<color=lime>New line {A} --> {B}</color>");
 
         // Applying a spherical brush around every point
@@ -526,25 +557,36 @@ public class StructureGenerator : MonoBehaviour
                                 if (allowedBranchCollisionLevel > 0)
                                 {
                                     // If it is the smaller branches that collide with each other, ignore collision
-                                    if (WorldManager.Instance.container[voxelPos].id <= allowedBranchCollisionLevel
+                                    if (WorldManager.Instance.container[voxelPos].id-1 <= allowedBranchCollisionLevel
                                         && segment.thickness <= allowedBranchCollisionLevel)
                                     {
                                         currentSpherePoints.Add(voxelPos);
                                         continue;
                                     }
                                 }
-                                // Make the small branches move away, big branches will ignore collisions with smaller
-                                if(segment.thickness <= WorldManager.Instance.container[voxelPos].id)
+
+                                // Ignore collisions with the parent branch
+                                if(segment.parentBranchId != WorldManager.Instance.container[voxelPos].branchId)
                                 {
-                                    collisionDetected = true;
+                                    // Make the small branches move away, big branches will ignore collisions with smaller
+                                    if (segment.thickness <= WorldManager.Instance.container[voxelPos].id - 1)
+                                    {
+                                        collisionDetected = true;
+                                        branchCollision.collisionsCount++;
+                                        branchCollision.didCollide = true;
+                                        break;
+                                    }
+                                    /*collisionDetected = true;
                                     branchCollision.collisionsCount++;
                                     branchCollision.didCollide = true;
-                                    break;
+                                    break;*/
                                 }
-                                else
+                                /*else
                                 {
-                                    print("<color=red>Collision BIG --> SMALL</color>");
-                                }
+                                    print("<color=lime>Ignoring collision with parent branch</color>");
+                                }*/
+
+
                                 /*collisionDetected = true;
                                 branchCollision.collisionsCount++;
                                 branchCollision.didCollide = true;
@@ -621,7 +663,7 @@ public class StructureGenerator : MonoBehaviour
         {
             WorldManager.Instance.container[pos + branchPointPos] = new Voxel()
             {
-                id = 5
+                id = 1
             };
         }
     }
@@ -653,7 +695,8 @@ public class StructureGenerator : MonoBehaviour
         new Vector3Int(2, 4, 0)
     };
 
-    static readonly Vector3Int[] leafLines = new Vector3Int[10]
+    // rounder leaf
+    /*static readonly Vector3Int[] leafLines = new Vector3Int[10]
     {
         new Vector3Int(0, 3, 0),
         new Vector3Int(0, 7, 0),
@@ -665,6 +708,12 @@ public class StructureGenerator : MonoBehaviour
         new Vector3Int(3, 8, 0),
         new Vector3Int(4, 3, 0),
         new Vector3Int(4, 7, 0),
+    };*/
+
+    static readonly Vector3Int[] leafLines = new Vector3Int[2]
+    {
+        new Vector3Int(0, 0, 0),
+        new Vector3Int(0, 6, 0)
     };
 
 }

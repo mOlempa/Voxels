@@ -18,7 +18,8 @@ public class LSystemGenerator : MonoBehaviour
     public Grammar grammar;
     public bool enablePrintDebug = false;
 
-    public List<List<Symbol>> GenerateConsecutiveSentences(string startingWord = null)
+
+    /*public List<List<Symbol>> GenerateConsecutiveSentences(string startingWord = null)
     {
         if (grammar == null)
         {
@@ -36,11 +37,11 @@ public class LSystemGenerator : MonoBehaviour
         int symbolIndex;
         for (int i = 0; i < iterationLimit; i++)
         {
-            printDebug("Iteration index: " + i + ", word: <color=yellow>" + GetSymbolListString(word) + "</color>");
+            printDebug("Iteration index: " + i + ", word: <color=yellow>" + Symbol.GetSymbolListString(word) + "</color>");
             symbolIndex = 0;
             foreach (Symbol symbol in word)
             {
-                //print("Symbol " + symbol.name);
+               // print("Symbol " + symbol.name);
                 List<Symbol> successorSymbolList = new List<Symbol>();
                 foreach (Rule rule in grammar.rules)
                 {
@@ -71,12 +72,12 @@ public class LSystemGenerator : MonoBehaviour
 
         }
 
-        printDebug("Final sentence: <color=yellow>" + sentence + "</color>");
+        printDebug("Final sentence: <color=yellow>" + word + "</color>");
 
         return consecutiveWords;
 
         //return GrowRecursive(word);
-    }
+    }*/
 
     public List<Symbol> GenerateSentence(string startingWord = null)
     {
@@ -92,11 +93,11 @@ public class LSystemGenerator : MonoBehaviour
 
         List<Symbol> word = grammar.ConvertStringToSymbols(startingWord);
         List<Symbol> nextWord = new List<Symbol>();
-        string sentence = "";
+        //string sentence = "";
         int symbolIndex;
         for (int i = 0; i < iterationLimit; i++)
         {
-            printDebug("Iteration index: " + i + ", word: <color=yellow>" + GetSymbolListString(word) + "</color>");
+            printDebug("Iteration index: " + i + ", word: <color=yellow>" + Symbol.GetSymbolListString(word) + "</color>");
             symbolIndex = 0;
             foreach (Symbol symbol in word)
             {
@@ -104,7 +105,9 @@ public class LSystemGenerator : MonoBehaviour
                 List<Symbol> successorSymbolList = new List<Symbol>();
                 foreach (Rule rule in grammar.rules)
                 {
-                    successorSymbolList = new List<Symbol>(rule.ApplyRule(symbol, word, symbolIndex));
+                    //successorSymbolList = new List<Symbol>(rule.ApplyRule(symbol, word, symbolIndex));
+                    successorSymbolList = rule.ApplyRule(symbol, word, symbolIndex);
+
                     //printDebug("Successor: " + GetSymbolListString(successorSymbolList));    
 
                     if (successorSymbolList.Count > 0)
@@ -119,34 +122,25 @@ public class LSystemGenerator : MonoBehaviour
                // printDebug("nextWord: " + GetSymbolListString(nextWord));
                 symbolIndex++;
             }
-            sentence = "";
+            /*sentence = "";
             foreach (Symbol symbol in nextWord)
             {
                 sentence += symbol.GetSymbolString();
-            }
+            }*/
             //print(sentence);
             word = new List<Symbol>(nextWord);
             nextWord.Clear();
 
         }
 
-        printDebug("Final sentence: <color=yellow>" + sentence + "</color>");
+        //printDebug("Final sentence: <color=yellow>" + sentence + "</color>");
+        printDebug("Final sentence: <color=yellow>" + Symbol.GetSymbolListString(word) + "</color>");
+
 
         return word;
 
         //return GrowRecursive(word);
     }
-
-    private string GetSymbolListString(List<Symbol> list)
-    {
-        string str = "";
-        foreach(Symbol s in list)
-        {
-            str += s.GetSymbolString();
-        }
-        return str;
-    }
-
 
 
     void printDebug(string str)

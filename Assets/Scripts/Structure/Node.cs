@@ -9,4 +9,6 @@ public struct Node
     public int thickness;
     public int branchLevel;
     public int prevNodeThickness;
+    public ushort branchId;
+    public ushort parentBranchId;
 }

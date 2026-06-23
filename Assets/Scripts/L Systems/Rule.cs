@@ -140,7 +140,7 @@ public class Rule
 
         foreach (char c in pattern)
         {
-            Debug.Log("CHAR " + c);
+            //Debug.Log("CHAR " + c);
             // If a previous loop was processing parameters, skip characters until closing bracket
             if (skipCharacters)
             {
@@ -283,19 +283,24 @@ public class Rule
     private Successor GetWeightedRandomSuccessor()
     {
         int totalSum = userSuccessors.Values.Sum();
-        int random = UnityEngine.Random.Range(0, totalSum);
+        int random = UnityEngine.Random.Range(1, totalSum + 1);
+        //Debug.Log("Total sum: " + totalSum +", Random: " + random);
         foreach (var s in successors)
         {
+            //Debug.Log(" -- successor " + Symbol.GetSymbolListString(s.successorSymbols) + ", prob = " + s.probability);
             // If random number is smaller than probability of the successor, return the successor
             if (random <= s.probability)
             {
+                //Debug.Log(random + " <= " + s.probability);
+                //Debug.Log("--> Successor chosen: " + Symbol.GetSymbolListString(s.successorSymbols));
                 return s;
             }
             // Otherwise reduce random value by the probability of the current successor and go to the next one
             random -= s.probability;
+            //Debug.Log("Decreasing random, random = " + random);
         }
         // If for any reason a successor was not chosen before, just return an empty list (no successors)
-        Debug.LogWarning("No successors for the rule were chosen!");
+        //Debug.LogWarning("No successors for the rule were chosen!");
         return new Successor();
     }
 }

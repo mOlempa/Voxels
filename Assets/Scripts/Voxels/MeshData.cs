@@ -10,6 +10,7 @@ public class MeshData
     public List<int> triangles = new List<int>();
     public List<Vector2> uvs = new List<Vector2>();
     public List<Vector2> uvs2 = new List<Vector2>();
+    public List<Vector2> uvs3 = new List<Vector2>();
     public List<Color> colors = new List<Color>();
 
     public bool initialized;
@@ -22,6 +23,8 @@ public class MeshData
             triangles = new List<int>();
             uvs = new List<Vector2>();
             uvs2 = new List<Vector2>();
+            uvs3 = new List<Vector2>();
+
             colors = new List<Color>();
             mesh = new Mesh();
             initialized = true;
@@ -32,6 +35,8 @@ public class MeshData
             triangles.Clear();
             uvs.Clear();
             uvs2.Clear();
+            uvs3.Clear();
+
             colors.Clear();
             mesh.Clear();
         }
@@ -44,6 +49,7 @@ public class MeshData
         mesh.SetTriangles(triangles, 0, false);
         mesh.SetUVs(0, uvs);
         mesh.SetUVs(2, uvs2);
+        mesh.SetUVs(3, uvs3);
         mesh.SetColors(colors);
 
         mesh.Optimize();

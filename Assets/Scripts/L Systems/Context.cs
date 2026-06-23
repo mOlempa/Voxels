@@ -86,9 +86,9 @@ public class Context
             // If there is left context
             if (leftContext.Count != 0)
             {
-                Debug.Log("Detected left context");
+                //Debug.Log("Detected left context");
                 List<Symbol> beforeSymbols = currentWord.GetRange(firstIndex, leftContext.Count);
-                Debug.Log("beforeSymbols: " + Symbol.GetSymbolListString(beforeSymbols));
+                //Debug.Log("beforeSymbols: " + Symbol.GetSymbolListString(beforeSymbols));
 
                 // Check if rule applies with symbol characters and their potential parameters
                 // For each symbol on the left (from the amount picked earlier)
@@ -126,18 +126,18 @@ public class Context
 
             if (contextRuleApplies)
             {
-                Debug.Log("<color=lime>Rule applies</color>");
+                //Debug.Log("<color=lime>Rule applies</color>");
                 return true;
             }
             else
             {
-                Debug.Log("<color=red>Rule does not apply</color>");
+                //Debug.Log("<color=red>Rule does not apply</color>");
                 return false;
             }
         }
         else
         {
-            Debug.Log("<color=red>Rule does not apply</color>");
+            //Debug.Log("<color=red>Rule does not apply</color>");
             return false;
         }
         
@@ -167,7 +167,7 @@ public class ContextSymbol
 
     public void CompileParamComparisons(string condition)
     {
-        Debug.Log("Compiling context parameters for symbol " + character);
+        //Debug.Log("Compiling context parameters for symbol " + character);
         Match match = Regex.Match(condition, @">=|<=|=|>|<|==");
         if (!match.Success)
         {
@@ -185,13 +185,13 @@ public class ContextSymbol
             // If condition has a number value, add it as a float
             float.TryParse(matchNumber.Value, out float value);
             comparisonVariables.Add(value);
-            Debug.Log("Added a VALUE as parameter comparison");
+            //Debug.Log("Added a VALUE as parameter comparison");
         }
         else
         {
             // If condition has a parameter name, add it as a char
             comparisonVariables.Add(conditionValue[0]);
-            Debug.Log("Added a NAME as parameter comparison");
+            //Debug.Log("Added a NAME as parameter comparison");
         }
 
         switch (match.Value)
