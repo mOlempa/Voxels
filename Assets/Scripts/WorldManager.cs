@@ -15,8 +15,11 @@ public class WorldManager : MonoBehaviour
     [SerializeField]
     public StructureGenerator structureGenerator;
 
+    [SerializeField]
+    public SpaceColonizer spaceColonizer;
+
     public VoxelColor[] worldColors;
-    public Material worldMaterial;
+    public Material plantMaterial;
 
     public Container container;
 
@@ -42,31 +45,29 @@ public class WorldManager : MonoBehaviour
         cont.transform.parent = transform;
         container = cont.AddComponent<Container>();
 
-        container.Initialize(worldMaterial, Vector3.zero);
+        container.Initialize(plantMaterial, Vector3.zero);
+
+        // Space Colonization Generation -----
+        //SpaceColonizer spaceColonizer = new SpaceColonizer();
+        /*spaceColonizer.GenerateAttractors(300, new Vector3Int(50, 100, 50));
+        spaceColonizer.ShowAttractors();
+        spaceColonizer.Colonize(new Vector3Int(0, 0, 0));*/
+        // -------
+
+
+        // L-System Plant Generation------
 
         List<Symbol> sentence = lSystemGenerator.GenerateSentence();
-
-        // No collision detection generation
-        /*List<Segment> segments = structureGenerator.ConvertSentenceToSegmentsOriginal(sentence);
-        foreach (var segment in segments)
-        {
-            List<Vector3Int> positions = GenerateThickLineOriginal(segment.startPos, segment.endPos, segment.thickness);
-            //List<Vector3Int> positions = GenerateLine(segment.startPos, segment.endPos);
-            foreach (var pos in positions)
-                container[pos + new Vector3Int(0, 200, 0)] = new Voxel()
-                {
-                    //id = 1
-                    id = worldColors.Length > segment.thickness ? (byte)segment.thickness : (byte)1
-                };
-        }*/
 
         // Collision detection generation
         structureGenerator.ConvertSentenceToSegments(sentence);
 
+        // -------
+
         container.GenerateMesh();
         container.UploadMesh();
 
-        transform.Rotate(-90, 0, 0); 
+        //transform.Rotate(-90, 0, 0); 
     }
 
 

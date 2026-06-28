@@ -40,14 +40,16 @@ MonoBehaviour:
     parameters: []
   rules:
   - predecessor: Y
-    context: 
+    userContext: 
     condition: 
     userSuccessors:
       _serializedList:
       - Key: X[+Y][-Y]
         Value: 1
+      - Key: X[+Y]
+        Value: 1
   - predecessor: X
-    context: 
+    userContext: 
     condition: 
     userSuccessors:
       _serializedList:

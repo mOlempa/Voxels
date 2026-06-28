@@ -63,6 +63,16 @@ public class Utilities
         return Vector3Int.RoundToInt(floatingPointTarget);
     }
 
+    public static Vector3 GetAveragedNormalizedDirectionVector(Vector3Int startPosition, List<Vector3Int> endpointPositions)
+    {
+        Vector3 vectorSum = new Vector3();
+        for (int i = 0; i < endpointPositions.Count; i++)
+        {
+            //positions[i] -= currentPos;
+            vectorSum += Vector3.Normalize(endpointPositions[i] - startPosition);
+        }
+        return Vector3.Normalize(vectorSum / endpointPositions.Count);
+    }
 
     // Generating a line of voxels (positions) between two points based on Bresenham 3D algorithm
     public static List<Vector3Int> GenerateLine(Vector3Int A, Vector3Int B)

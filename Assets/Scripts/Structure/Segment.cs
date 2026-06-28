@@ -5,7 +5,7 @@ using UnityEngine;
 
 public struct Segment
 {
-    public Node startPoint, endPoint;
+    public LNode startPoint, endPoint;
     public int thickness;
     public int branchLevel;
     public int length;
@@ -32,7 +32,7 @@ public struct Segment
         return new Segment
         {
             startPoint = startPoint,
-            endPoint = new Node
+            endPoint = new LNode
             {
                 position = pos,
                 branchLevel = endPoint.branchLevel,

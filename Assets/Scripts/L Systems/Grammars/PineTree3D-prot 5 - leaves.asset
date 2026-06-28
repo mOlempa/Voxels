@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a147ee174ac0df44f840182e32131490, type: 3}
   m_Name: PineTree3D-prot 5 - leaves
   m_EditorClassIdentifier: 
-  rootSentence: T(30, 1)A(15)
+  rootSentence: T(50, 1)A(15)
   definedSymbols:
   - name: A
     character: 65
@@ -82,9 +82,12 @@ MonoBehaviour:
       _serializedList:
       - Key: '[rF(v, 1)B(10)][qF(v, 1)B(10)]T(v/2, 1)A(v-1)'
         Value: 1
-      - Key: '[rF(v, 1)B(10)][rF(v, 1)B(10)][qF(v, 1)B(10)]T(v/2, 1)A(v-1)'
+      - Key: '[qF(v, 1)B(10)][rF(v, 1)B(10)][qF(v, 1)B(10)]T(v/2, 1)A(v-1)'
         Value: 2
-      - Key: '[rF(v, 1)B(10)][rF(v, 1)B(10)][qF(v, 1)B(10)][qF(v, 1)B(10)]T(v/2,
+      - Key: '[rF(v, 1)B(10)][qF(v, 1)B(10)][rF(v, 1)B(10)][qF(v, 1)B(10)]T(v/2,
+          1)A(v-1)'
+        Value: 10
+      - Key: '[qF(v, 1)B(10)][rF(v, 1)B(10)][qF(v, 1)B(10)][rF(v, 1)B(10)]T(v/2,
           1)A(v-1)'
         Value: 10
   - predecessor: A(v)
@@ -94,9 +97,11 @@ MonoBehaviour:
       _serializedList:
       - Key: '[rF(v, 1)B(v)][qF(v, 1)B(v)]T(v, 1)A(v-1)'
         Value: 2
-      - Key: '[rF(v, 1)B(v)][rF(v, 1)B(v)][qF(v, 1)B(v)]T(v, 1)A(v-1)'
+      - Key: '[qF(v, 1)B(v)][rF(v, 1)B(v)][qF(v, 1)B(v)]T(v, 1)A(v-1)'
         Value: 3
-      - Key: '[rF(v, 1)B(v)][rF(v, 1)B(v)][qF(v, 1)B(v)][qF(v, 1)B(v)]T(v, 1)A(v-1)'
+      - Key: '[rF(v, 1)B(v)][qF(v, 1)B(v)][rF(v, 1)B(v)][qF(v, 1)B(v)]T(v, 1)A(v-1)'
+        Value: 20
+      - Key: '[qF(v, 1)B(v)][rF(v, 1)B(v)][qF(v, 1)B(v)][rF(v, 1)B(v)]T(v, 1)A(v-1)'
         Value: 20
   - predecessor: B(v)
     userContext: 
@@ -104,6 +109,10 @@ MonoBehaviour:
     userSuccessors:
       _serializedList:
       - Key: F(v*2,1)[+(30,40)o(-15,15)C(v-2)][-(30,40)x(-15,15)C(v-2)]B(v-1)
+        Value: 1
+      - Key: '[rZ(v,1)]F(v*2,1)[+(30,40)o(-15,15)C(v-2)][-(30,40)x(-15,15)C(v-2)]B(v-1)'
+        Value: 1
+      - Key: '[qZ(v,1)]F(v*2,1)[+(30,40)o(-15,15)C(v-2)][-(30,40)x(-15,15)C(v-2)]B(v-1)'
         Value: 1
   - predecessor: C(v)
     userContext: 
@@ -122,7 +131,7 @@ MonoBehaviour:
         Value: 0
   - predecessor: D(v)
     userContext: 
-    condition: 
+    condition: v>0
     userSuccessors:
       _serializedList:
       - Key: Z(v/2,1)D(v-1)
@@ -149,6 +158,13 @@ MonoBehaviour:
       - Key: '#'
         Value: 1
   - predecessor: C(v)
+    userContext: 
+    condition: v<=0
+    userSuccessors:
+      _serializedList:
+      - Key: '#'
+        Value: 1
+  - predecessor: D(v)
     userContext: 
     condition: v<=0
     userSuccessors:

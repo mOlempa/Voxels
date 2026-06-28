@@ -22,7 +22,7 @@ public class StructureGenerator : MonoBehaviour
     public int maxAngle = 40;
     public int minAngle = 15;
     public int maxThickness = 5;
-    private Vector3 startingAngles = Vector3.zero;
+    public Vector3 startingAngles = new Vector3(0, 0, 0);
     private BranchCollisionHelper branchCollision = new BranchCollisionHelper();
 
     [Header("Branch Collision Handling")]
@@ -82,29 +82,6 @@ public class StructureGenerator : MonoBehaviour
 
     }
 
-    private Vector3 GetRandomAngleChange(Vector3 currentAngles)
-    {
-        Vector3 angle;
-        if (collisionBranchGrowthBias != GrowthBiasType.None)
-        {
-            Vector3 globalDirDifference = currentAngles - GetDirection(collisionBranchGrowthBias);
-            //globalDirDifference = globalDirDifference.normalized;
-            angle = globalDirDifference + new Vector3(5, 5, 5) * Random.Range(0.1f, 1f);
-        }
-        else
-        {
-            Vector3 direction = angleDirections[Random.Range(0, angleDirections.Length)] * (Random.Range(0, 1) == 1 ? 1 : -1);
-            angle = direction * Random.Range(minAngle, maxAngle);
-        }
-        //Get some random overall angle, multiply it by a random from between predefined min and max,
-        //multiply it by random betwen 1 and -1 to increase 
-        /*Vector3 angle = angleDirections[Random.Range(0, angleDirections.Length)] *
-            (Random.Range(minAngle, maxAngle)) * (Random.Range(0, 1) == 1 ? 1 : -1);*/
-
-        return angle;
-    }
-
-
     public List<Segment> ConvertSentenceToSegments(List<Symbol> sentence)
     {
         if (grammar == null)
@@ -120,8 +97,8 @@ public class StructureGenerator : MonoBehaviour
 
         //printDebug($"<color=#{WorldManager.Instance.worldColors[0].color.ToHexString().TrimEnd("00")}>{WorldManager.Instance.worldColors[0].color.ToHexString()}</color>");
 
-        Stack<Node> stack = new Stack<Node>();
-        stack.Push(new Node() { 
+        Stack<LNode> stack = new Stack<LNode>();
+        stack.Push(new LNode() { 
             position = new Vector3Int(0, 0, 0), 
             anglesDeg = startingAngles, 
             thickness = maxThickness, 
@@ -132,7 +109,7 @@ public class StructureGenerator : MonoBehaviour
 
         foreach (var symbol in sentence)
         {
-            Node currentNode;
+            LNode currentNode;
             int randAngle = UnityEngine.Random.Range(minAngle, maxAngle);
             int randLength;
 
@@ -172,6 +149,8 @@ public class StructureGenerator : MonoBehaviour
                     InterpretRotationalParams(symbol, ref randAngle);
                     currentNode = stack.Pop();
                     currentNode.anglesDeg.x += randAngle;
+                    print($"Node <color=white>{currentNode.position}</color>\n" +
+                        $"Rotating right, new angles --> <color=yellow>{currentNode.anglesDeg}</color>");
                     stack.Push(currentNode);
                     break;
 
@@ -181,6 +160,9 @@ public class StructureGenerator : MonoBehaviour
                     InterpretRotationalParams(symbol, ref randAngle);
                     currentNode = stack.Pop();
                     currentNode.anglesDeg.x -= randAngle;
+                    print($"Node <color=white>{currentNode.position}</color>\n" + 
+                        $"Rotating left, new angles --> <color=yellow>{currentNode.anglesDeg}</color>");
+
                     stack.Push(currentNode);
                     break;
 
@@ -189,7 +171,10 @@ public class StructureGenerator : MonoBehaviour
 
                     InterpretRotationalParams(symbol, ref randAngle);
                     currentNode = stack.Pop();
-                    currentNode.anglesDeg.y += randAngle;
+                    currentNode.anglesDeg.z += randAngle;
+                    print($"Node <color=white>{currentNode.position}</color>\n" +
+                        $"Rotating forward, new angles --> <color=yellow>{currentNode.anglesDeg}</color>");
+
                     stack.Push(currentNode);
                     break;
 
@@ -198,7 +183,10 @@ public class StructureGenerator : MonoBehaviour
 
                     InterpretRotationalParams(symbol, ref randAngle);
                     currentNode = stack.Pop();
-                    currentNode.anglesDeg.y -= randAngle;
+                    currentNode.anglesDeg.z -= randAngle;
+                    print($"Node <color=white>{currentNode.position}</color>\n" +
+                        $"Rotating backward, new angles --> <color=yellow>{currentNode.anglesDeg}</color>");
+
                     stack.Push(currentNode);
                     break;
 
@@ -207,7 +195,7 @@ public class StructureGenerator : MonoBehaviour
 
                     InterpretRotationalParams(symbol, ref randAngle);
                     currentNode = stack.Pop();
-                    currentNode.anglesDeg.z += randAngle;
+                    currentNode.anglesDeg.y += randAngle;
                     stack.Push(currentNode);
                     break;
 
@@ -228,7 +216,7 @@ public class StructureGenerator : MonoBehaviour
 
                 case Action.StartBranch:
                     printDebug($"Symbol {symbol.name}, starting branch");
-                    stack.Push(new Node()
+                    stack.Push(new LNode()
                     {
                         position = stack.Peek().position,
                         anglesDeg = stack.Peek().anglesDeg,
@@ -265,7 +253,7 @@ public class StructureGenerator : MonoBehaviour
     }
     
 
-    private void GenerateSegment(ref Node currentNode, int randLength)
+    private void GenerateSegment(ref LNode currentNode, int randLength)
     {
         Segment segment = new Segment()
         {
@@ -279,6 +267,7 @@ public class StructureGenerator : MonoBehaviour
         };
         Vector3Int savedPos = currentNode.position;
         currentNode.position = savedPos + GetLocalEndpoint(randLength, currentNode.anglesDeg);
+        print($"New endpoint: <color=lime>{currentNode.position}</color>");
 
         segment.endPoint = currentNode;
         //print("Segment at level " + segment.branchLevel);
@@ -341,8 +330,8 @@ public class StructureGenerator : MonoBehaviour
             // starting position
             new Vector3Int(0, 0, 0)
         };
-        Stack<Node> stack = new Stack<Node>();
-        stack.Push(new Node() { position = positions[0], anglesDeg = startingAngles, thickness = maxThickness, branchLevel = 0 });
+        Stack<LNode> stack = new Stack<LNode>();
+        stack.Push(new LNode() { position = positions[0], anglesDeg = startingAngles, thickness = maxThickness, branchLevel = 0 });
         string final = $"";
         //final += $"<color=#{WorldManager.Instance.worldColors[maxThickness].color.ToHexString().TrimEnd("00")}>";
 
@@ -350,7 +339,7 @@ public class StructureGenerator : MonoBehaviour
 
         foreach (var symbol in sentence)
         {
-            Node currentNode;
+            LNode currentNode;
             int randAngle = UnityEngine.Random.Range(minAngle, maxAngle);
             int randLength;
             //int randAngle = 30;
@@ -430,7 +419,7 @@ public class StructureGenerator : MonoBehaviour
                     final += $"</color>";
                     //final += $"<color=#{WorldManager.Instance.worldColors[stack.Peek().thickness > 1 ? stack.Peek().thickness - 1 : 1].color.ToHexString().TrimEnd("00")}>";
                     final += symbol.name;
-                    stack.Push(new Node()
+                    stack.Push(new LNode()
                     {
                         position = stack.Peek().position,
                         anglesDeg = stack.Peek().anglesDeg,
