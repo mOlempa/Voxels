@@ -206,4 +206,30 @@ public class Utilities
         // No hits means the point is inside it
         return true;
     }
+
+    public static Vector3 GetRandomRotatedDirection(Vector3 originalDirection, float angleDegrees)
+    {
+        // 1. Normalize the original direction to keep calculations accurate
+        originalDirection.Normalize();
+
+        // 2. Find a perpendicular vector to act as a baseline rotation axis
+        Vector3 perpendicularAxis = Vector3.Cross(originalDirection, Vector3.up);
+        
+        // Edge Case: If originalDirection points straight up or down, the cross product fails (returns zero).
+        // If that happens, we use Vector3.forward instead to establish a perpendicular axis.
+        if (perpendicularAxis.sqrMagnitude < 0.001f)
+        {
+            perpendicularAxis = Vector3.Cross(originalDirection, Vector3.forward);
+        }
+        perpendicularAxis.Normalize();
+
+        // 3. Tilt the vector away from the center by the exact angle
+        Vector3 tiltedVector = Quaternion.AngleAxis(angleDegrees, perpendicularAxis) * originalDirection;
+
+        // 4. Spin the tilted vector around the original direction axis by a random 360-degree angle
+        float randomRoll = Random.Range(0f, 360f);
+        Vector3 finalDirection = Quaternion.AngleAxis(randomRoll, originalDirection) * tiltedVector;
+
+        return finalDirection;
+    }
 }

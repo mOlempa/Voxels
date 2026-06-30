@@ -12,21 +12,26 @@ using static Utilities;
 using static Constants;
 using Unity.VisualScripting;
 
+[RequireComponent(typeof(Trunk))]
 public class SpaceColonizer : MonoBehaviour
 {
     public bool enableDebug = false;
 
-    [SerializeField]
+    [Header("General")]
+    public int iterations = 5;
+    public bool showAttractors = true;
+    [Range(1, 50)]
+    public int maxThickness = 5;
+    [Range(0,1)]
+    public float biasStrength = 0;
+
+    [Header("Trunk")]
     Trunk trunk;
     [Range(1, 6)]
     public int branchesPerTrunkNode = 1;
+    public int trunkBranchAngle = 90;
 
-    [Header("General")]
-    public int iterations = 1;
-    public bool showAttractors = true;
-    [Range(1, 50)]
-    public int maxThickness = 1;
-
+    [Highlight(1, 0.8f, 0)]
     [Header("Attractors Settings")]
     [Range(20, 5000)]
     public int attractorsAmount = 100;
@@ -59,9 +64,17 @@ public class SpaceColonizer : MonoBehaviour
     HashSet<SCNode> newNodes = new HashSet<SCNode>();
     Dictionary<Vector3Int, List<Vector3Int>> nodesWithAttractors = new Dictionary<Vector3Int, List<Vector3Int>>();
 
+    /*Vector3 GetTrunkBranchRandDir()
+    {
+        Quaternion localRotation = Quaternion.Euler(-90, 0, 0);
+        // rotate branch around its own axis (global Y axis)
+        Quaternion quaternion = Quaternion.Euler(0, Random.Range(0, 360), 0);
+        // returns new trunk branch direction vector with angle between trunk node dir vector and the returned vector defined above
+    }*/
 
     public void Colonize(Vector3Int startingPoint)
     {
+        trunk = GetComponent<Trunk>();
         List<SCNode> branchStartingNodes = trunk.GenerateTrunk(startingPoint);
         /*nodes.Add(new SCNode()
         {
@@ -75,14 +88,16 @@ public class SpaceColonizer : MonoBehaviour
 
         foreach(SCNode node in branchStartingNodes)
         {
+            //GetRandomRotatedDirection(node.direction, trunkBranchAngle);
             nodes.Add(new SCNode()
             {
                 position = node.position,
                 startsBranch = false,
-                direction = new Vector3(0, 1, 0),
+                direction = GetRandomRotatedDirection(node.direction, trunkBranchAngle),
                 energy = MAX_ENERGY,
                 branchLevel = 0,
                 thickness = maxThickness > node.thickness ? node.thickness : maxThickness,
+                length = segmentLength,
             });
             Debug.Log($"Creating new branch node {nodes.Last().position} with thickness {nodes.Last().thickness}");
         }
@@ -222,16 +237,18 @@ public class SpaceColonizer : MonoBehaviour
 
             // If attractors cause the node to grow the same branch
             if (nodes.Any(n => n.position ==
-                node.position + Vector3Int.RoundToInt(directionVec * segmentLength)))
+                node.position + Vector3Int.RoundToInt(directionVec * node.length)))
             {
                 directionVec = HandleRegrowth(node, directionVec);
             }
 
             // If none of the branch growth tries was successful, skip this node (ignore attractors)
             if (directionVec.Equals(Vector3.zero)) return;
-           
 
-            Vector3Int endpointOffset = Vector3Int.RoundToInt(directionVec * segmentLength);
+            // Make the branch growth biased
+            Vector3 biasedDirectionVec = Vector3.Slerp(directionVec, node.direction, biasStrength);
+
+            Vector3Int endpointOffset = Vector3Int.RoundToInt(directionVec * node.length);
             (SCNode startNode, SCNode endNode) branchNodes =
                 GenerateStartEndNodes(node, endpointOffset, directionVec, false);
 
@@ -259,7 +276,7 @@ public class SpaceColonizer : MonoBehaviour
                     Random.Range(0, randomizeBranchDirection)
                 );
 
-                Vector3Int endpointOffset = Vector3Int.RoundToInt(randomDirection * segmentLength);
+                Vector3Int endpointOffset = Vector3Int.RoundToInt(randomDirection * node.length);
                 (SCNode startNode, SCNode endNode) branchNodes =
                     GenerateStartEndNodes(node, endpointOffset, randomDirection, true);
 
@@ -282,7 +299,7 @@ public class SpaceColonizer : MonoBehaviour
             print($"Trying growth towards attractor <color=lime>{attractor}</color>");
             // If the node position is already taken (the branch has already grown that way)
             if (nodes.Any(n => n.position ==
-                node.position + Vector3Int.RoundToInt(directionVec * segmentLength)))
+                node.position + Vector3Int.RoundToInt(directionVec * node.length)))
             {
                 print($"<color=red>Node {node.position} regrowth!</color>");
 
@@ -314,6 +331,7 @@ public class SpaceColonizer : MonoBehaviour
             branchLevel = node.branchLevel,
             startsBranch = true,
             thickness = node.thickness,
+            length = node.length,
         };
 
         SCNode endNode = new SCNode()
@@ -324,6 +342,7 @@ public class SpaceColonizer : MonoBehaviour
             branchLevel = node.branchLevel + 1,
             startsBranch = false,
             thickness = node.thickness > 1 ? node.thickness - 1 : 1,
+            length = inheritsEnergy ? node.length - 1 : node.length,
         };
 
         print($"New start node: {startNode.position} -- startsBranch = <color=lime>{startNode.startsBranch}</color>");
@@ -390,7 +409,7 @@ public class SpaceColonizer : MonoBehaviour
     public void GenerateAttractors()
     {
         Vector3Int meshBounds;
-        SpawnArea spawnArea;
+        AttractorSpawnArea spawnArea;
         attractorSpawnArea.GetComponent<MeshRenderer>().enabled = false;
         MeshCollider meshCollider = attractorSpawnArea.GetComponent<MeshCollider>();
         if(meshCollider != null)
@@ -402,14 +421,15 @@ public class SpaceColonizer : MonoBehaviour
                 Mathf.RoundToInt(meshCollider.bounds.center.y - meshCollider.bounds.extents.y),   // center contains local position coords
                 Mathf.RoundToInt(attractorSpawnArea.transform.position.z));
             meshBounds = Vector3Int.RoundToInt(meshCollider.bounds.extents);
-            spawnArea = new SpawnArea(meshBounds, Vector3Int.RoundToInt(calculatedOffset));
+            spawnArea = new AttractorSpawnArea(meshBounds, Vector3Int.RoundToInt(calculatedOffset));
         }
         else
         {
             Debug.LogWarning("No mesh collider attached to the spawn area!");
             meshBounds = new Vector3Int(100, 50, 100);
-            spawnArea = new SpawnArea(meshBounds, Vector3Int.zero);
+            spawnArea = new AttractorSpawnArea(meshBounds, Vector3Int.zero);
         }
+
 
         for (int i = 0; i < attractorsAmount; i++)
         {
@@ -428,19 +448,7 @@ public class SpaceColonizer : MonoBehaviour
                 attractors.Add(randPos);
 
         }
-    }
-
-    class SpawnArea
-    {
-        public (int from, int to) xBounds;
-        public (int from, int to) yBounds;
-        public (int from, int to) zBounds;
-        public SpawnArea(Vector3Int bounds, Vector3Int offset)
-        {
-            xBounds = (-bounds.x + offset.x, bounds.x + offset.x);
-            yBounds = (offset.y, bounds.y*2 + offset.y);
-            zBounds = (-bounds.z + offset.z, bounds.z + offset.z);
-        }
+        attractorSpawnArea.GetComponent<MeshCollider>().enabled = false;
     }
 
     public void ShowAttractors()

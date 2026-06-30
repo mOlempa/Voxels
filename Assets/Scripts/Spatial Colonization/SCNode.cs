@@ -10,6 +10,7 @@ public struct SCNode
     public int energy;
     public int branchLevel;
     public int thickness;
+    public int length;
 
     public SCNode Clone()
     {
@@ -20,6 +21,8 @@ public struct SCNode
             direction = this.direction,
             energy = this.energy,
             branchLevel = this.branchLevel,
+            thickness = this.thickness,
+            length = this.length
         };
     }
 
