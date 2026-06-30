@@ -83,7 +83,7 @@ MonoBehaviour:
       - Key: '[rF(v, 1)B(10)][qF(v, 1)B(10)]T(v/2, 1)A(v-1)'
         Value: 1
       - Key: '[qF(v, 1)B(10)][rF(v, 1)B(10)][qF(v, 1)B(10)]T(v/2, 1)A(v-1)'
-        Value: 2
+        Value: 1
       - Key: '[rF(v, 1)B(10)][qF(v, 1)B(10)][rF(v, 1)B(10)][qF(v, 1)B(10)]T(v/2,
           1)A(v-1)'
         Value: 10
@@ -96,9 +96,9 @@ MonoBehaviour:
     userSuccessors:
       _serializedList:
       - Key: '[rF(v, 1)B(v)][qF(v, 1)B(v)]T(v, 1)A(v-1)'
-        Value: 2
+        Value: 1
       - Key: '[qF(v, 1)B(v)][rF(v, 1)B(v)][qF(v, 1)B(v)]T(v, 1)A(v-1)'
-        Value: 3
+        Value: 1
       - Key: '[rF(v, 1)B(v)][qF(v, 1)B(v)][rF(v, 1)B(v)][qF(v, 1)B(v)]T(v, 1)A(v-1)'
         Value: 20
       - Key: '[qF(v, 1)B(v)][rF(v, 1)B(v)][qF(v, 1)B(v)][rF(v, 1)B(v)]T(v, 1)A(v-1)'
@@ -177,26 +177,26 @@ MonoBehaviour:
     userSuccessors:
       _serializedList:
       - Key: +o(85,95)
-        Value: 2
+        Value: 0
       - Key: x+(20,70)
-        Value: 2
+        Value: 0
       - Key: o
         Value: 2
       - Key: o+(20,70)
-        Value: 2
+        Value: 0
   - predecessor: q
     userContext: 
     condition: 
     userSuccessors:
       _serializedList:
       - Key: o-(20,70)
-        Value: 2
+        Value: 0
       - Key: -o(85,95)
-        Value: 2
+        Value: 0
       - Key: x
         Value: 2
       - Key: x-(20,70)
-        Value: 2
+        Value: 0
   - predecessor: T(a,w)
     userContext: 
     condition: w<8

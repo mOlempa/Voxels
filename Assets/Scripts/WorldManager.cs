@@ -49,18 +49,20 @@ public class WorldManager : MonoBehaviour
 
         // Space Colonization Generation -----
         //SpaceColonizer spaceColonizer = new SpaceColonizer();
-        /*spaceColonizer.GenerateAttractors(300, new Vector3Int(50, 100, 50));
+        
+        //spaceColonizer.GenerateAttractors(100, new Vector3Int(50, 100, 50));
+        spaceColonizer.GenerateAttractors();
         spaceColonizer.ShowAttractors();
-        spaceColonizer.Colonize(new Vector3Int(0, 0, 0));*/
+        spaceColonizer.Colonize(new Vector3Int(0, 0, 0));
         // -------
 
 
         // L-System Plant Generation------
 
-        List<Symbol> sentence = lSystemGenerator.GenerateSentence();
+        /*List<Symbol> sentence = lSystemGenerator.GenerateSentence();
 
         // Collision detection generation
-        structureGenerator.ConvertSentenceToSegments(sentence);
+        structureGenerator.ConvertSentenceToSegments(sentence);*/
 
         // -------
 

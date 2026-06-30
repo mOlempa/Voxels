@@ -9,6 +9,7 @@ public struct SCNode
     public Vector3 direction;
     public int energy;
     public int branchLevel;
+    public int thickness;
 
     public SCNode Clone()
     {

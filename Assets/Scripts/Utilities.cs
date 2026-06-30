@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class Utilities
@@ -154,5 +155,55 @@ public class Utilities
 
 
         return points;
+    }
+
+    public static List<Vector3Int> GenerateThickLine(Vector3Int A, Vector3Int B, int radius)
+    {
+        // Get the thin center line
+        List<Vector3Int> thinLine = GenerateLine(A, B);
+
+        HashSet<Vector3Int> thickLine = new HashSet<Vector3Int>(); // HashSet to automatically discard duplicate overlapping points
+
+        int radiusSquared = radius * radius;
+
+        // Applying a spherical brush around every point
+        foreach (Vector3Int point in thinLine)
+        {
+            for (int x = -radius; x <= radius; x++)
+            {
+                for (int y = -radius; y <= radius; y++)
+                {
+                    for (int z = -radius; z <= radius; z++)
+                    {
+                        // Check if this local offset is within the sphere's radius
+                        // (doing x*x + y*y + z*z is much faster than Vector3.Distance)
+                        if (x * x + y * y + z * z <= radiusSquared)
+                        {
+                            thickLine.Add(new Vector3Int(point.x + x, point.y + y, point.z + z));
+                        }
+                    }
+                }
+            }
+        }
+
+        return thickLine.ToList();
+    }
+
+    public static bool IsPointInCollider(MeshCollider other, Vector3 point)
+    {
+        Vector3 direction = other.bounds.center - point;
+        RaycastHit[] hits = Physics.RaycastAll(point, direction);
+
+        foreach (RaycastHit hit in hits)
+        {
+            // IF collider was hit, the point is outside of the mesh colldier
+            if (hit.collider == other)
+            {
+                return false;
+            }
+        }
+
+        // No hits means the point is inside it
+        return true;
     }
 }

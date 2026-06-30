@@ -27,7 +27,7 @@ public struct Segment
         }
     }
 
-    public Segment ChangeEndpointPos(Vector3Int pos)
+    /*public Segment ChangeEndpointPos(Vector3Int pos)
     {
         return new Segment
         {
@@ -43,5 +43,5 @@ public struct Segment
             branchLevel = branchLevel,
             length = length
         };
-    }
+    }*/
 }

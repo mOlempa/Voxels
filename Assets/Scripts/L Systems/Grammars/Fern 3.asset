@@ -10,17 +10,29 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a147ee174ac0df44f840182e32131490, type: 3}
-  m_Name: PineTree2D Base
+  m_Name: Fern 3
   m_EditorClassIdentifier: 
-  rootSentence: A(10)
+  rootSentence: F(3)[o(30)A(15)]M(5,15)M(5,15)
   definedSymbols:
   - name: A
     character: 65
     action: 0
     parameters: []
+  - name: B
+    character: 66
+    action: 0
+    parameters: []
+  - name: Z
+    character: 90
+    action: 1
+    parameters: []
   - name: F
     character: 70
     action: 1
+    parameters: []
+  - name: L
+    character: 76
+    action: 8
     parameters: []
   - name: +
     character: 43
@@ -38,10 +50,6 @@ MonoBehaviour:
     character: 93
     action: 7
     parameters: []
-  - name: L
-    character: 76
-    action: 8
-    parameters: []
   - name: o
     character: 111
     action: 4
@@ -49,14 +57,6 @@ MonoBehaviour:
   - name: x
     character: 120
     action: 5
-    parameters: []
-  - name: B
-    character: 66
-    action: 0
-    parameters: []
-  - name: C
-    character: 67
-    action: 0
     parameters: []
   - name: '@'
     character: 64
@@ -68,21 +68,18 @@ MonoBehaviour:
     condition: v>0
     userSuccessors:
       _serializedList:
-      - Key: '[o@(90)F(v*2)B(v)][-F(v*2)B(v)]F(v*5)A(v-1)'
+      - Key: F(v-2)o(4,7)[+(v*2.5)B(v)]F(v-2)[-(v*2.5)B(v))]A(v-1)
+        Value: 0
+      - Key: F(v-2)o(4,7)+(1)p[+(v*2.5)B(v)]F(v-2)[-(v*2.5)B(v))]A(v-1)
+        Value: 1
+      - Key: F(v-2)o(4,7)-(1)p[+(v*2.5)B(v)]F(v-2)[-(v*2.5)B(v))]A(v-1)
         Value: 1
   - predecessor: B(v)
     userContext: 
     condition: v>0
     userSuccessors:
       _serializedList:
-      - Key: F(v*2)[+C(v-2)][-C(v-2)]B(v-1)
-        Value: 1
-  - predecessor: C(v)
-    userContext: 
-    condition: v>0
-    userSuccessors:
-      _serializedList:
-      - Key: F(v)C(v-1)
+      - Key: '[+(10)F(v+1)]F(v+1)[-(10)F(v+1)]B(v-2)'
         Value: 1
   - predecessor: A(v)
     userContext: 
@@ -98,10 +95,33 @@ MonoBehaviour:
       _serializedList:
       - Key: '#'
         Value: 1
-  - predecessor: C(v)
+  - predecessor: p
+    userContext: +(>0)_
+    condition: 
+    userSuccessors:
+      _serializedList:
+      - Key: +(1)
+        Value: 1
+  - predecessor: p
+    userContext: -(>0)_
+    condition: 
+    userSuccessors:
+      _serializedList:
+      - Key: -(1)
+        Value: 1
+  - predecessor: M(n,v)
     userContext: 
-    condition: v<=0
+    condition: n<=0
     userSuccessors:
       _serializedList:
       - Key: '#'
+        Value: 1
+  - predecessor: M(n,v)
+    userContext: 
+    condition: 
+    userSuccessors:
+      _serializedList:
+      - Key: '[@(0,360)o(2*v)A(v-1)]M(n-1, v-1)'
+        Value: 1
+      - Key: '[@(0,360)o(v)A(v-1)]M(n-1, v-1)'
         Value: 1

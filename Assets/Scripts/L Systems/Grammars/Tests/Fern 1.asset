@@ -10,17 +10,29 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a147ee174ac0df44f840182e32131490, type: 3}
-  m_Name: PineTree2D Base
+  m_Name: Fern 1
   m_EditorClassIdentifier: 
-  rootSentence: A(10)
+  rootSentence: A
   definedSymbols:
   - name: A
     character: 65
     action: 0
     parameters: []
+  - name: B
+    character: 66
+    action: 0
+    parameters: []
+  - name: Z
+    character: 90
+    action: 1
+    parameters: []
   - name: F
     character: 70
     action: 1
+    parameters: []
+  - name: L
+    character: 76
+    action: 8
     parameters: []
   - name: +
     character: 43
@@ -38,10 +50,6 @@ MonoBehaviour:
     character: 93
     action: 7
     parameters: []
-  - name: L
-    character: 76
-    action: 8
-    parameters: []
   - name: o
     character: 111
     action: 4
@@ -50,58 +58,36 @@ MonoBehaviour:
     character: 120
     action: 5
     parameters: []
-  - name: B
-    character: 66
-    action: 0
-    parameters: []
-  - name: C
-    character: 67
-    action: 0
-    parameters: []
   - name: '@'
     character: 64
     action: 10
     parameters: []
   rules:
-  - predecessor: A(v)
+  - predecessor: A
     userContext: 
-    condition: v>0
+    condition: 
     userSuccessors:
       _serializedList:
-      - Key: '[o@(90)F(v*2)B(v)][-F(v*2)B(v)]F(v*5)A(v-1)'
+      - Key: +F(1)[B]A
         Value: 1
-  - predecessor: B(v)
+  - predecessor: B
     userContext: 
-    condition: v>0
+    condition: 
     userSuccessors:
       _serializedList:
-      - Key: F(v*2)[+C(v-2)][-C(v-2)]B(v-1)
+      - Key: F(1)[+Z(1)][-Z(1)]B
         Value: 1
-  - predecessor: C(v)
+  - predecessor: F(a)
     userContext: 
-    condition: v>0
+    condition: 
     userSuccessors:
       _serializedList:
-      - Key: F(v)C(v-1)
+      - Key: F(a+2)
         Value: 1
-  - predecessor: A(v)
+  - predecessor: Z(a)
     userContext: 
-    condition: v<=0
+    condition: 
     userSuccessors:
       _serializedList:
-      - Key: '#'
-        Value: 1
-  - predecessor: B(v)
-    userContext: 
-    condition: v<=0
-    userSuccessors:
-      _serializedList:
-      - Key: '#'
-        Value: 1
-  - predecessor: C(v)
-    userContext: 
-    condition: v<=0
-    userSuccessors:
-      _serializedList:
-      - Key: '#'
+      - Key: Z(a+2)
         Value: 1

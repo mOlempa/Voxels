@@ -18,6 +18,10 @@ MonoBehaviour:
     character: 89
     action: 1
     parameters: []
+  - name: X
+    character: 88
+    action: 1
+    parameters: []
   - name: +
     character: 43
     action: 3
@@ -34,10 +38,6 @@ MonoBehaviour:
     character: 93
     action: 7
     parameters: []
-  - name: X
-    character: 88
-    action: 1
-    parameters: []
   rules:
   - predecessor: Y
     userContext: 
@@ -45,7 +45,7 @@ MonoBehaviour:
     userSuccessors:
       _serializedList:
       - Key: X[+Y][-Y]
-        Value: 1
+        Value: 3
       - Key: X[+Y]
         Value: 1
   - predecessor: X

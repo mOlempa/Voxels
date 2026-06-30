@@ -12,7 +12,8 @@ using static GrowthBias;
 public class StructureGenerator : MonoBehaviour
 {
     //[SerializeField] public Grammar grammar;
-    [SerializeField] public LSystemGenerator lSystemGenerator;
+    [HideInInspector] LSystemGenerator lSystemGenerator;
+    [SerializeField] public LeafShape leafShape;
     private Grammar grammar;
     public bool enablePrintDebug = false;
     //public bool ignoreThinBranchCollision = true;
@@ -99,8 +100,10 @@ public class StructureGenerator : MonoBehaviour
 
         Stack<LNode> stack = new Stack<LNode>();
         stack.Push(new LNode() { 
-            position = new Vector3Int(0, 0, 0), 
-            anglesDeg = startingAngles, 
+            position = new Vector3Int(0, 0, 0),
+            //anglesDeg = startingAngles, 
+            localRotation = Quaternion.identity,
+            rotation = Quaternion.Euler(startingAngles),
             thickness = maxThickness, 
             branchLevel = 0, 
             prevNodeThickness = maxThickness
@@ -148,9 +151,10 @@ public class StructureGenerator : MonoBehaviour
 
                     InterpretRotationalParams(symbol, ref randAngle);
                     currentNode = stack.Pop();
-                    currentNode.anglesDeg.x += randAngle;
-                    print($"Node <color=white>{currentNode.position}</color>\n" +
-                        $"Rotating right, new angles --> <color=yellow>{currentNode.anglesDeg}</color>");
+                    //currentNode.anglesDeg.x += randAngle;
+                    currentNode.Rotate(randAngle, 0, 0, Space.Self);
+                    currentNode.ApplyLocalRotation();
+                    currentNode.ResetLocalRotation();
                     stack.Push(currentNode);
                     break;
 
@@ -159,9 +163,12 @@ public class StructureGenerator : MonoBehaviour
 
                     InterpretRotationalParams(symbol, ref randAngle);
                     currentNode = stack.Pop();
-                    currentNode.anglesDeg.x -= randAngle;
-                    print($"Node <color=white>{currentNode.position}</color>\n" + 
-                        $"Rotating left, new angles --> <color=yellow>{currentNode.anglesDeg}</color>");
+
+                    //currentNode.anglesDeg.x -= randAngle;
+                    //currentNode.Rotate(-randAngle, 0, 0, Space.World);
+                    currentNode.Rotate(-randAngle, 0, 0, Space.Self);
+                    currentNode.ApplyLocalRotation();
+                    currentNode.ResetLocalRotation();
 
                     stack.Push(currentNode);
                     break;
@@ -171,9 +178,11 @@ public class StructureGenerator : MonoBehaviour
 
                     InterpretRotationalParams(symbol, ref randAngle);
                     currentNode = stack.Pop();
-                    currentNode.anglesDeg.z += randAngle;
-                    print($"Node <color=white>{currentNode.position}</color>\n" +
-                        $"Rotating forward, new angles --> <color=yellow>{currentNode.anglesDeg}</color>");
+
+                    //currentNode.anglesDeg.z += randAngle;
+                    currentNode.Rotate(0, randAngle, 0, Space.Self);
+                    currentNode.ApplyLocalRotation();
+                    currentNode.ResetLocalRotation();
 
                     stack.Push(currentNode);
                     break;
@@ -183,9 +192,10 @@ public class StructureGenerator : MonoBehaviour
 
                     InterpretRotationalParams(symbol, ref randAngle);
                     currentNode = stack.Pop();
-                    currentNode.anglesDeg.z -= randAngle;
-                    print($"Node <color=white>{currentNode.position}</color>\n" +
-                        $"Rotating backward, new angles --> <color=yellow>{currentNode.anglesDeg}</color>");
+                    //currentNode.anglesDeg.z -= randAngle;
+                    currentNode.Rotate(0, -randAngle, 0, Space.Self);
+                    currentNode.ApplyLocalRotation();
+                    currentNode.ResetLocalRotation();
 
                     stack.Push(currentNode);
                     break;
@@ -195,22 +205,10 @@ public class StructureGenerator : MonoBehaviour
 
                     InterpretRotationalParams(symbol, ref randAngle);
                     currentNode = stack.Pop();
-                    currentNode.anglesDeg.y += randAngle;
-                    stack.Push(currentNode);
-                    break;
-
-                case Action.RotateRandomDir:
-                    printDebug($"Symbol {symbol.name}, rotating random");
-                    currentNode = stack.Pop();
-
-                    // Choose the amount of direcitons in the mix (for example +, -o, ++
-                    int n = Random.Range(0, 2);
-                    for(int i = 0; i < n; i++)
-                    {
-                        int rand = Random.Range(0, 4);
-                    }
-
-
+                    //currentNode.anglesDeg.y += randAngle;
+                    currentNode.Rotate(0, 0, randAngle, Space.Self);
+                    currentNode.ApplyLocalRotation();
+                    currentNode.ResetLocalRotation();
                     stack.Push(currentNode);
                     break;
 
@@ -219,7 +217,9 @@ public class StructureGenerator : MonoBehaviour
                     stack.Push(new LNode()
                     {
                         position = stack.Peek().position,
-                        anglesDeg = stack.Peek().anglesDeg,
+                        //anglesDeg = stack.Peek().anglesDeg,
+                        localRotation = stack.Peek().localRotation,
+                        rotation = stack.Peek().rotation,
                         prevNodeThickness = stack.Peek().thickness,
                         branchId = (ushort)(assignableBranchId + 1),
                         parentBranchId = stack.Peek().branchId,
@@ -238,10 +238,7 @@ public class StructureGenerator : MonoBehaviour
 
                 case Action.PlaceLeaf:
                     if (!branchCollision.cutChildBranches)
-                        GenerateLeaf(stack.Peek().position, Quaternion.Euler(
-                            stack.Peek().anglesDeg.x, 
-                            stack.Peek().anglesDeg.y, 
-                            stack.Peek().anglesDeg.z));
+                        GenerateLeaf(stack.Peek().position, stack.Peek().rotation);
                     break;
 
                 default:
@@ -266,8 +263,8 @@ public class StructureGenerator : MonoBehaviour
             parentBranchId = currentNode.parentBranchId,
         };
         Vector3Int savedPos = currentNode.position;
-        currentNode.position = savedPos + GetLocalEndpoint(randLength, currentNode.anglesDeg);
-        print($"New endpoint: <color=lime>{currentNode.position}</color>");
+        currentNode.position = savedPos + GetLocalEndpoint(randLength, currentNode.eulerAngles);
+        //print($"New endpoint: <color=lime>{currentNode.position}</color>, angles: {currentNode.eulerAngles}");
 
         segment.endPoint = currentNode;
         //print("Segment at level " + segment.branchLevel);
@@ -283,11 +280,11 @@ public class StructureGenerator : MonoBehaviour
             //print("<color=cyan>Reassigning branch angle...</color>");
 
             Vector3 biasedDir = collisionBranchGrowthBias == GrowthBiasType.Branch ?
-                GetLocalEndpoint(randLength, currentNode.anglesDeg) : GetDirection(collisionBranchGrowthBias);
+                GetLocalEndpoint(randLength, currentNode.eulerAngles) : GetDirection(collisionBranchGrowthBias);
 
             // Biased towards specific branch direction
             currentNode.position = savedPos + GetLocalEndpoint(randLength,
-                GetBiasedLocalRotation(currentNode.anglesDeg, biasedDir));
+                GetBiasedLocalRotation(currentNode.eulerAngles, biasedDir));
 
             segment.endPoint = currentNode;
         }
@@ -315,7 +312,7 @@ public class StructureGenerator : MonoBehaviour
         }
     }
 
-    public List<Segment> ConvertSentenceToSegmentsOriginal(List<Symbol> sentence)
+    /*public List<Segment> ConvertSentenceToSegmentsOriginal(List<Symbol> sentence)
     {
         if (grammar == null)
         {
@@ -447,7 +444,7 @@ public class StructureGenerator : MonoBehaviour
         printDebug(final);
 
         return segments;
-    }
+    }*/
 
     private void InterpretRotationalParams(Symbol symbol, ref int angle)
     {
@@ -459,7 +456,9 @@ public class StructureGenerator : MonoBehaviour
                 {
                     default:
                     case 0:
-                        angle = Random.Range((int)symbol.parameters[0] - 5, (int)symbol.parameters[0] + 5);
+                        // angle = Random.Range((int)symbol.parameters[0] - 5, (int)symbol.parameters[0] + 5);
+                        angle = Random.Range((int)symbol.parameters[0], (int)symbol.parameters[0]);
+
                         break;
                     case 1:
                         // Get a random between two angles if there are two values
@@ -538,10 +537,6 @@ public class StructureGenerator : MonoBehaviour
                             // If it's occupied and we are out of the grace zone it is a collision
                             if (!insideGraceZone && WorldManager.Instance.container[voxelPos].id != 0)
                             {
-                                //print($"<color=orange>Collision detected at {voxelPos}!\nVoxel id is {WorldManager.Instance.container[voxelPos].id}</color>");
-                                //print($"<color=yellow>Line {segment.startPos} --> {segment.endPos}</color>");
-                                //print($"(point - A).sqrMagnitude = {(point - segment.startPos).sqrMagnitude},  graceDistanceSquared = {graceDistanceSquared}");
-
                                 // If smaller branch collisions can be ignored
                                 if (allowedBranchCollisionLevel > 0)
                                 {
@@ -565,21 +560,7 @@ public class StructureGenerator : MonoBehaviour
                                         branchCollision.didCollide = true;
                                         break;
                                     }
-                                    /*collisionDetected = true;
-                                    branchCollision.collisionsCount++;
-                                    branchCollision.didCollide = true;
-                                    break;*/
                                 }
-                                /*else
-                                {
-                                    print("<color=lime>Ignoring collision with parent branch</color>");
-                                }*/
-
-
-                                /*collisionDetected = true;
-                                branchCollision.collisionsCount++;
-                                branchCollision.didCollide = true;
-                                break;*/
                             }
 
                             currentSpherePoints.Add(voxelPos);
@@ -611,19 +592,19 @@ public class StructureGenerator : MonoBehaviour
     {
         //print("Placing leaf at " + branchPointPos);
 
-        Vector3Int leafStart = leafLines.FirstOrDefault(x => x.y == 0); // find the leaf tail starting position
+        Vector3Int leafStart = leafShape.leafPoints.FirstOrDefault(x => x.y == 0); // find the leaf tail starting position
 
-        Vector3Int[] leafLinesCopy = leafLines.ToArray();
+        Vector3Int[] leafLinesCopy = leafShape.leafPoints;
         List<Vector3Int> newLeafPositions = new List<Vector3Int>();
 
-        for (int i = 0; i < leafLines.Length; i++)
+        for (int i = 0; i < leafShape.leafPoints.Length; i++)
         {
             if (i % 2 != 0)
             {
                 //print($"int y = {leafLines[i].y}; y <= {leafLines[i - 1].y}; y++");
-                for (int y = leafLines[i-1].y; y <= leafLines[i].y; y++)
+                for (int y = leafShape.leafPoints[i-1].y; y <= leafShape.leafPoints[i].y; y++)
                 {
-                    Vector3Int vec = new Vector3Int(leafLines[i].x, y, leafLines[i].z);
+                    Vector3Int vec = new Vector3Int(leafShape.leafPoints[i].x, y, leafShape.leafPoints[i].z);
                     newLeafPositions.Add(vec);
                     //print("Adding position " + vec);
                 }
@@ -668,21 +649,6 @@ public class StructureGenerator : MonoBehaviour
         new Vector3(1, 1, 1),
     };
 
-    static readonly Vector3Int[] leaf = new Vector3Int[12]
-    {
-        new Vector3Int(0, 2, 0),
-        new Vector3Int(0, 3, 0),
-        new Vector3Int(0, 4, 0),
-        new Vector3Int(1, 0, 0),
-        new Vector3Int(1, 1, 0),
-        new Vector3Int(1, 2, 0),
-        new Vector3Int(1, 3, 0),
-        new Vector3Int(1, 4, 0),
-        new Vector3Int(1, 5, 0),
-        new Vector3Int(2, 2, 0),
-        new Vector3Int(2, 3, 0),
-        new Vector3Int(2, 4, 0)
-    };
 
     // rounder leaf
     /*static readonly Vector3Int[] leafLines = new Vector3Int[10]
@@ -699,11 +665,11 @@ public class StructureGenerator : MonoBehaviour
         new Vector3Int(4, 7, 0),
     };*/
 
-    static readonly Vector3Int[] leafLines = new Vector3Int[2]
+    /*static readonly Vector3Int[] leafLines = new Vector3Int[2]
     {
         new Vector3Int(0, 0, 0),
         new Vector3Int(0, 6, 0)
-    };
+    };*/
 
 }
 
