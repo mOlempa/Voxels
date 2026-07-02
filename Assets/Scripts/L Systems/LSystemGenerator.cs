@@ -142,6 +142,14 @@ public class LSystemGenerator : MonoBehaviour
         //return GrowRecursive(word);
     }
 
+    public string GetDataString()
+    {
+        StringBuilder result = new StringBuilder();
+        result.AppendLine($"--Rules--");
+        return result.ToString();
+
+    }
+
 
     void printDebug(string str)
     {

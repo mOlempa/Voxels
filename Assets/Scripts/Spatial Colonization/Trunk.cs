@@ -66,7 +66,7 @@ public class Trunk : MonoBehaviour
         List<SCNode> branchNodes = new List<SCNode>();
         for(int i = indexA; i < indexB; i++)
         {
-            print("Adding branch node at index " + i + " with trunk thickness " + nodes[i].thickness);
+            //print("Adding branch node at index " + i + " with trunk thickness " + nodes[i].thickness);
             branchNodes.Add(nodes[i]);
         }
 

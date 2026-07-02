@@ -15,7 +15,7 @@ public class AttractorSpawnArea : MonoBehaviour
     [HideInInspector] public (int from, int to) yBounds;
     [HideInInspector] public (int from, int to) zBounds;
     
-    public AttractorSpawnArea(Vector3Int bounds, Vector3Int offset)
+    public void Calculate(Vector3Int bounds, Vector3Int offset)
     {
 
         xBounds = (-bounds.x + offset.x, bounds.x + offset.x);

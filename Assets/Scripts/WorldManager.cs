@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Unity.VisualScripting;
 using UnityEngine;
@@ -49,25 +50,36 @@ public class WorldManager : MonoBehaviour
 
         // Space Colonization Generation -----
         //SpaceColonizer spaceColonizer = new SpaceColonizer();
-        
+
         //spaceColonizer.GenerateAttractors(100, new Vector3Int(50, 100, 50));
-        spaceColonizer.GenerateAttractors();
-        spaceColonizer.ShowAttractors();
         spaceColonizer.Colonize(new Vector3Int(0, 0, 0));
+        string scResult = spaceColonizer.GetDataString();
         // -------
 
 
         // L-System Plant Generation------
 
         /*List<Symbol> sentence = lSystemGenerator.GenerateSentence();
+        string lResult = lSystemGenerator.GetDataString();
 
         // Collision detection generation
-        structureGenerator.ConvertSentenceToSegments(sentence);*/
+        structureGenerator.ConvertSentenceToSegments(sentence);
+         */
 
         // -------
 
         container.GenerateMesh();
         container.UploadMesh();
+        string dir = @"C:\Users\Meg\Desktop\Results";
+        string time = DateTime.Now.ToString("ddMMyy-HHmmss");
+        string filename = $"{time}--screenshot.png";
+        ScreenCapture.CaptureScreenshot(Path.Combine(dir, filename));
+
+        using (StreamWriter sw = new StreamWriter(dir + $"/{time}--data.txt", true))
+        {
+            sw.Write(scResult);
+            //sw.WriteLine("This is a new text file!");
+        }
 
         //transform.Rotate(-90, 0, 0); 
     }

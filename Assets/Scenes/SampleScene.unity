@@ -468,7 +468,7 @@ Transform:
   m_GameObject: {fileID: 963194225}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1, z: -65.41}
+  m_LocalPosition: {x: 0, y: 174.7, z: -355.4}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -709,6 +709,7 @@ GameObject:
   - component: {fileID: 2015696232}
   - component: {fileID: 2015696233}
   - component: {fileID: 2015696231}
+  - component: {fileID: 2015696234}
   m_Layer: 0
   m_Name: SpaceColonizer
   m_TagString: Untagged
@@ -728,26 +729,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 535da823ef1f651428b100092df6364f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  enableDebug: 0
-  iterations: 5
+  enableDebug: 1
+  iterations: 15
   showAttractors: 1
-  maxThickness: 4
-  biasStrength: 1
-  trunk: {fileID: 2015696233}
-  branchesPerTrunkNode: 1
+  maxThickness: 3
+  biasStrength: 0.8
+  branchesPerTrunkNode: 3
   trunkBranchAngle: 30
-  attractorsAmount: 1253
-  attractorSpawnArea: {fileID: 6454967121765468124}
-  spawnAreaScale: {x: 1.5, y: 0.7, z: 1.5}
-  spawnAreaOffset: {x: 0, y: 50, z: 0}
-  maxDistance: 15
-  minDistance: 1
-  attractorKillRadius: 7
-  segmentLength: 10
-  maxBranchRotationAngle: 25
-  maxDebranchRotationAngle: 73
-  maxBranchLevel: 15
-  randomizeBranchDirection: 0
+  segmentLength: 15
+  maxBranchRotationAngle: 35
+  maxDebranchRotationAngle: 50
+  maxBranchLevel: 6
+  randomizeBranchDirection: 0.1
 --- !u!4 &2015696232
 Transform:
   m_ObjectHideFlags: 0
@@ -757,7 +750,7 @@ Transform:
   m_GameObject: {fileID: 2015696230}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 49, z: 0}
   m_LocalScale: {x: 2, y: 2, z: 2}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -776,12 +769,32 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2234466bcacb2ab4791f66a723860454, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  nodesAmount: 9
+  nodesAmount: 4
   segmentLength: 32
   startingThickness: 10
   thicknessIncrease: -1
   minBranchHeight: 0.12
   maxBranchHeight: 0.881
+--- !u!114 &2015696234
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2015696230}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 45dc3f9b4f2b5274abab4eb3d01a0e26, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  showAttractors: 1
+  attractorsAmount: 100
+  attractorSpawnArea: {fileID: 6454967121765468124}
+  spawnAreaScale: {x: 1, y: 1, z: 1}
+  spawnAreaOffset: {x: 0, y: 0, z: 0}
+  maxDistance: 15
+  minDistance: 1
+  attractorKillRadius: 7
 --- !u!33 &1150008106006359469
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -789,7 +802,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6454967121765468124}
-  m_Mesh: {fileID: -2432090755550338912, guid: 360335c9b361bc64aad9297fe178d05f, type: 3}
+  m_Mesh: {fileID: -2432090755550338912, guid: 0c29f7937cb3dee409d3ed7dcfbe5f45, type: 3}
 --- !u!4 &2819967069443200231
 Transform:
   m_ObjectHideFlags: 0
@@ -800,7 +813,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 50, z: 0}
-  m_LocalScale: {x: 100, y: 70, z: 100}
+  m_LocalScale: {x: 100, y: 100, z: 100}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 2015696232}
@@ -890,6 +903,8 @@ GameObject:
   m_Component:
   - component: {fileID: 2819967069443200231}
   - component: {fileID: 1150008106006359469}
+  - component: {fileID: 6454967121765468127}
+  - component: {fileID: 6454967121765468126}
   - component: {fileID: 6454967121765468125}
   m_Layer: 0
   m_Name: AttractorSpawnArea
@@ -898,7 +913,71 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &6454967121765468125
+--- !u!64 &6454967121765468125
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6454967121765468124}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: -2432090755550338912, guid: 0c29f7937cb3dee409d3ed7dcfbe5f45, type: 3}
+--- !u!23 &6454967121765468126
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6454967121765468124}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: daa47d1e1643dcc4b9c705fda4ed8781, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &6454967121765468127
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -910,8 +989,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3a4336a47b2f5bf4cb1d708759577141, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  spawnAreaPrefab: {fileID: 5700857261825890524, guid: ed618cf7596b18d4e9de810010944cb0, type: 3}
-  spawnAreaMaterial: {fileID: 2100000, guid: daa47d1e1643dcc4b9c705fda4ed8781, type: 2}
+  refreshCollider: 43
 --- !u!1001 &8145776484161039746
 PrefabInstance:
   m_ObjectHideFlags: 0

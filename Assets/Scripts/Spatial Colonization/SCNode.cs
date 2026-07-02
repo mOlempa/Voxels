@@ -31,6 +31,7 @@ public struct SCNode
         get
         {
             return energy <= 0;
+            //return false;
         }
     }
 

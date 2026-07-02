@@ -11,6 +11,7 @@ using static UnityEngine.Rendering.HableCurve;
 using static Utilities;
 using static Constants;
 using Unity.VisualScripting;
+using System.Text;
 
 [RequireComponent(typeof(Trunk))]
 public class SpaceColonizer : MonoBehaviour
@@ -19,32 +20,15 @@ public class SpaceColonizer : MonoBehaviour
 
     [Header("General")]
     public int iterations = 5;
-    public bool showAttractors = true;
     [Range(1, 50)]
     public int maxThickness = 5;
     [Range(0,1)]
     public float biasStrength = 0;
 
     [Header("Trunk")]
-    Trunk trunk;
     [Range(1, 6)]
     public int branchesPerTrunkNode = 1;
     public int trunkBranchAngle = 90;
-
-    [Highlight(1, 0.8f, 0)]
-    [Header("Attractors Settings")]
-    [Range(20, 5000)]
-    public int attractorsAmount = 100;
-    public GameObject attractorSpawnArea;
-    public Vector3 spawnAreaScale = Vector3.one;
-    public Vector3Int spawnAreaOffset = Vector3Int.zero;
-
-    [Range(1, 100)]
-    public int maxDistance = 10;
-    [Range(1, 100)]
-    public int minDistance = 2;
-    [Range(1, 100)]
-    public int attractorKillRadius = 2;
 
     [Header("Nodes Settings")]
     [Range(2, 100)]
@@ -55,36 +39,42 @@ public class SpaceColonizer : MonoBehaviour
     public int maxDebranchRotationAngle = 90;
     [Range(1, 100)]
     public int maxBranchLevel = 10;
+    [Highlight(0.7f, 0.7f, 1f)]
+    public bool seekingBranchesEnabled = false;
+    [Highlight(0.7f, 0.7f, 1f)]
     [Range(0, 1)]
     public float randomizeBranchDirection = 0;
 
     
     HashSet<SCNode> nodes = new HashSet<SCNode>();
-    HashSet<Vector3Int> attractors = new HashSet<Vector3Int>();
+    //HashSet<Vector3Int> attractors = new HashSet<Vector3Int>();
+    SpatialHashGrid<SCNode> nodesGrid;
     HashSet<SCNode> newNodes = new HashSet<SCNode>();
     Dictionary<Vector3Int, List<Vector3Int>> nodesWithAttractors = new Dictionary<Vector3Int, List<Vector3Int>>();
 
-    /*Vector3 GetTrunkBranchRandDir()
-    {
-        Quaternion localRotation = Quaternion.Euler(-90, 0, 0);
-        // rotate branch around its own axis (global Y axis)
-        Quaternion quaternion = Quaternion.Euler(0, Random.Range(0, 360), 0);
-        // returns new trunk branch direction vector with angle between trunk node dir vector and the returned vector defined above
-    }*/
+    Trunk trunk;
+    AttractorManager attractorManager;
+
+    //byte attractorVoxelID = 6;
+    byte killedAttractorVoxelID = 2;
+    byte branchVoxelID = 3;
+
 
     public void Colonize(Vector3Int startingPoint)
     {
         trunk = GetComponent<Trunk>();
-        List<SCNode> branchStartingNodes = trunk.GenerateTrunk(startingPoint);
-        /*nodes.Add(new SCNode()
+        if(!TryGetComponent(out attractorManager))
         {
-            position = new Vector3Int(0, 0, 0),
-            startsBranch = false,
-            direction = new Vector3(0, 1, 0),
-            energy = Constants.MAX_ENERGY,
-            branchLevel = 0,
-            thickness = maxThickness,
-        });*/
+            Debug.LogWarning("No attractor manager component found!");
+            return;
+        };
+
+        attractorManager.GenerateAttractors();
+        attractorManager.ShowAttractors();
+
+
+
+        List<SCNode> branchStartingNodes = trunk.GenerateTrunk(startingPoint);
 
         foreach(SCNode node in branchStartingNodes)
         {
@@ -99,14 +89,18 @@ public class SpaceColonizer : MonoBehaviour
                 thickness = maxThickness > node.thickness ? node.thickness : maxThickness,
                 length = segmentLength,
             });
-            Debug.Log($"Creating new branch node {nodes.Last().position} with thickness {nodes.Last().thickness}");
+            //Debug.Log($"Creating new branch node {nodes.Last().position} with thickness {nodes.Last().thickness}");
+
+            // Populating the hash grid
+            RepopulateNodesGrid();
         }
 
         for (int i = 0; i < iterations; i++)
         {
             print($"Iteration <color=red>{i}</color>");
+            FindNearestNodes();
 
-            for(int b = 0; b < branchesPerTrunkNode; b++)
+            for (int b = 0; b < branchesPerTrunkNode; b++)
             {
                 foreach(SCNode branchStartNode in branchStartingNodes)
                 {
@@ -117,9 +111,37 @@ public class SpaceColonizer : MonoBehaviour
         }
     }
 
+    public string GetDataString()
+    {
+        StringBuilder result = new StringBuilder();
+        result.AppendLine($"--General--");
+        result.AppendLine($"iterations: {iterations}");
+        result.AppendLine($"maxThickness: {maxThickness}");
+        result.AppendLine($"biasStrength: {biasStrength}");
+        result.AppendLine();
+        result.AppendLine($"--Trunk--");
+        result.AppendLine($"branchesPerTrunkNode: {branchesPerTrunkNode}");
+        result.AppendLine($"trunkBranchAngle: {trunkBranchAngle}");
+        result.AppendLine();
+        result.AppendLine($"--Attractors--");
+        result.AppendLine($"attractorsAmount: {attractorManager.attractorsAmount}");
+        result.AppendLine($"maxDistance: {attractorManager.maxDistance}");
+        result.AppendLine($"minDistance: {attractorManager.minDistance}");
+        result.AppendLine($"attractorKillRadius: {attractorManager.attractorKillRadius}");
+        result.AppendLine();
+        result.AppendLine($"--Nodes--");
+        result.AppendLine($"segmentLength: {segmentLength}");
+        result.AppendLine($"maxBranchRotationAngle: {maxBranchRotationAngle}");
+        result.AppendLine($"maxDebranchRotationAngle: {maxDebranchRotationAngle}");
+        result.AppendLine($"maxBranchLevel: {maxBranchLevel}");
+        result.AppendLine($"randomizeBranchDirection: {randomizeBranchDirection}");
+        return result.ToString();
+
+    }
+
     void GrowBranches()
     {
-        FindNearestNodes();
+        //FindNearestNodes();
 
         foreach (SCNode node in nodes)
         {
@@ -133,58 +155,44 @@ public class SpaceColonizer : MonoBehaviour
         nodes = new HashSet<SCNode>(newNodes);
         newNodes.Clear();
 
-        RemoveReachedAttractors();
+        attractorManager.RemoveReachedAttractors(nodes);
+        RepopulateNodesGrid();
     }
 
-    /*public void Colonize(Vector3Int startingPoint)
+    void RepopulateNodesGrid()
     {
-        trunk.GenerateTrunk(startingPoint);
-
-        nodes.Add(new SCNode()
+        nodesGrid = new SpatialHashGrid<SCNode>(attractorManager.maxDistance);
+        foreach (var node in nodes)
         {
-            position = new Vector3Int(0, 0, 0),
-            startsBranch = false,
-            direction = new Vector3(0, 1, 0),
-            energy = Constants.MAX_ENERGY,
-            branchLevel = 0,
-            thickness = maxThickness,
-        });
-
-        for (int i = 0; i < iterations; i++)
-        {
-            print($"Iteration <color=red>{i}</color>");
-
-            FindNearestNodes();
-
-            foreach (SCNode node in nodes)
-            {
-                ManageNewBranch(node);
-            }
-
-            print($"-----New nodes:");
-            foreach (var n in newNodes)
-                print($"   <color=yellow>{n.position}</color>, energy = <b>{n.energy}</b>, branchLevel: {n.branchLevel}");
-
-            nodes = new HashSet<SCNode>(newNodes);
-            newNodes.Clear();
-
-            RemoveReachedAttractors();
+            nodesGrid.Add(node.position, node);
         }
-    }*/
+    }
+
 
     void FindNearestNodes()
     {
         nodesWithAttractors.Clear();
         // TODO: attractors here HAS TO BE CHANGED TO SPATIAL HASH GRID!
-        foreach (var attractor in attractors)
+
+        /*foreach(var attractor in attractors)
         {
+            List<SCNode> nearbyNodes = nodesGrid.GetNearby(attractor);
+
+        }*/
+
+        foreach (var attractor in attractorManager.attractors)
+        {
+            List<SCNode> nearbyNodes = nodesGrid.GetNearby(attractor);
+            if (nearbyNodes.Count == 0) continue;
+
             (SCNode node, float distance) closestNode = (new SCNode(), INFINITE_DISTANCE);
-            foreach(var node in nodes)
+
+            foreach(var node in nearbyNodes)
             {
                 float distance = Vector3Int.Distance(node.position, attractor);
 
                 // If node is within detection distance
-                if (distance < maxDistance && distance > minDistance)
+                if (distance < attractorManager.maxDistance && distance > attractorManager.minDistance)
                 {
                     if (distance < closestNode.distance)
                     {
@@ -211,7 +219,6 @@ public class SpaceColonizer : MonoBehaviour
     }
 
 
-
     void ManageNewBranch(SCNode node)
     {
         if (node.branchLevel >= maxBranchLevel)
@@ -220,6 +227,12 @@ public class SpaceColonizer : MonoBehaviour
             newNodes.Add(node.Clone());
             return;
         }
+        /*if(node.length < 3)
+        {
+            print($"<color=red>XX</color> Node reached minimal length <color=yellow>{node.position}</color>");
+            newNodes.Add(node.Clone());
+            return;
+        }*/
 
         // If there are any attractors nearby
         if (nodesWithAttractors.ContainsKey(node.position))
@@ -248,16 +261,23 @@ public class SpaceColonizer : MonoBehaviour
             // Make the branch growth biased
             Vector3 biasedDirectionVec = Vector3.Slerp(directionVec, node.direction, biasStrength);
 
-            Vector3Int endpointOffset = Vector3Int.RoundToInt(directionVec * node.length);
-            (SCNode startNode, SCNode endNode) branchNodes =
-                GenerateStartEndNodes(node, endpointOffset, directionVec, false);
+            Vector3Int endpointOffset = Vector3Int.RoundToInt(biasedDirectionVec * node.length);
 
-            CreateSegment(branchNodes.startNode, branchNodes.endNode);
+            CreateSegment(node, endpointOffset, biasedDirectionVec, false);
+            /*(SCNode startNode, SCNode endNode) branchNodes =
+                GenerateStartEndNodes(node, endpointOffset, biasedDirectionVec, false);
+
+            CreateSegment(branchNodes.startNode, branchNodes.endNode);*/
         }
         // If no attractors nearby
         else
         {
             print("No close attractors found for node " + node.position);
+            if (!seekingBranchesEnabled)
+            {
+                newNodes.Add(node.Clone());
+                return;
+            }
 
             // If the node is at the end of branches, grow it further towards some direction
             if (node.startsBranch == false)
@@ -270,18 +290,18 @@ public class SpaceColonizer : MonoBehaviour
                     return;
                 }
 
-                Vector3 randomDirection = node.direction + new Vector3(
-                    Random.Range(0, randomizeBranchDirection),
-                    Random.Range(0, randomizeBranchDirection),
-                    Random.Range(0, randomizeBranchDirection)
-                );
+                Vector3 randomOffset = Random.insideUnitSphere * randomizeBranchDirection;
+                Vector3 randomDirection = (node.direction + randomOffset).normalized;
 
                 Vector3Int endpointOffset = Vector3Int.RoundToInt(randomDirection * node.length);
-                (SCNode startNode, SCNode endNode) branchNodes =
+                // Create a new segment
+                CreateSegment(node, endpointOffset, randomDirection, true);
+
+                /*(SCNode startNode, SCNode endNode) branchNodes =
                     GenerateStartEndNodes(node, endpointOffset, randomDirection, true);
 
                 // Create a new segment
-                CreateSegment(branchNodes.startNode, branchNodes.endNode);
+                CreateSegment(branchNodes.startNode, branchNodes.endNode);*/
             }
             else
             {
@@ -291,6 +311,7 @@ public class SpaceColonizer : MonoBehaviour
         }
     }
 
+    // In case of growing multiple times in the same direction, manipulate the direction vector
     Vector3 HandleRegrowth(SCNode node, Vector3 directionVec)
     {
         // Try each close attractor for collision with already grown branches
@@ -320,36 +341,43 @@ public class SpaceColonizer : MonoBehaviour
     }
 
     // Creates start and end node objects
-    (SCNode startNode, SCNode endNode) GenerateStartEndNodes(SCNode node, Vector3Int endpointOffset, 
-        Vector3 endpointDirection, bool inheritsEnergy)
+    /*(SCNode startNode, SCNode endNode) GenerateStartEndNodes(SCNode node, Vector3Int endpointOffset, 
+        Vector3 endpointDirection, bool decreaseEnergy)
     {
+        int branchLevel = node.startsBranch ? node.branchLevel + 1 : node.branchLevel;
+        int length = node.length; //-  branchLevel/maxBranchLevel;
         SCNode startNode = new SCNode()
         {
             position = node.position,
             direction = node.direction,
-            energy = inheritsEnergy ? node.energy : MAX_ENERGY,
-            branchLevel = node.branchLevel,
+            energy = decreaseEnergy ? node.energy : MAX_ENERGY,
+            branchLevel = branchLevel,
             startsBranch = true,
             thickness = node.thickness,
-            length = node.length,
+            length = length,
         };
+
+        int thickness;
+        if (node.thickness > maxThickness) thickness = maxThickness;
+        else thickness = node.startsBranch ? (node.thickness > 1 ? node.thickness - 1 : 1) : node.thickness;
 
         SCNode endNode = new SCNode()
         {
             position = node.position + endpointOffset,
             direction = endpointDirection,
-            energy = inheritsEnergy ? node.energy - 1 : MAX_ENERGY,
-            branchLevel = node.branchLevel + 1,
+            energy = decreaseEnergy ? node.energy - 1 : MAX_ENERGY,
+            branchLevel = branchLevel,
             startsBranch = false,
-            thickness = node.thickness > 1 ? node.thickness - 1 : 1,
-            length = inheritsEnergy ? node.length - 1 : node.length,
+            thickness = thickness,
+            length = length,
+            //length = node.startsBranch && length > 3 ? length - 1 : length,
         };
 
         print($"New start node: {startNode.position} -- startsBranch = <color=lime>{startNode.startsBranch}</color>");
         print($"New end node: {endNode.position} -- startsBranch = <color=lime>{endNode.startsBranch}</color>");
 
         return (startNode, endNode);
-    }
+    }*/
 
 
     Vector3 ClampDirectionAngle(Vector3 directionVec, SCNode node)
@@ -369,109 +397,58 @@ public class SpaceColonizer : MonoBehaviour
     }
 
 
-    void CreateSegment(SCNode startNode, SCNode endNode)
+    void CreateSegment(SCNode node, Vector3Int endpointOffset,
+        Vector3 endpointDirection, bool decreaseEnergy)
     {
-        GenerateVoxels(GenerateThickLine(startNode.position, endNode.position, startNode.thickness));
+        int branchLevel = node.startsBranch ? node.branchLevel + 1 : node.branchLevel;
+        int length = node.length; //-  branchLevel/maxBranchLevel;
+        SCNode startNode = new SCNode()
+        {
+            position = node.position,
+            direction = node.direction,
+            energy = decreaseEnergy ? node.energy : MAX_ENERGY,
+            branchLevel = branchLevel,
+            startsBranch = true,
+            thickness = node.thickness,
+            length = length,
+        };
+
+        int thickness;
+        if (node.thickness > maxThickness) thickness = maxThickness;
+        else thickness = node.startsBranch ? (node.thickness > 1 ? node.thickness - 1 : 1) : node.thickness;
+
+        SCNode endNode = new SCNode()
+        {
+            position = node.position + endpointOffset,
+            direction = endpointDirection,
+            energy = decreaseEnergy ? node.energy - 1 : MAX_ENERGY,
+            branchLevel = branchLevel,
+            startsBranch = false,
+            thickness = thickness,
+            length = length,
+            //length = node.startsBranch && length > 3 ? length - 1 : length,
+        };
+
+        print($"New start node: {startNode.position} -- startsBranch = <color=lime>{startNode.startsBranch}</color>");
+        print($"New end node: {endNode.position} -- startsBranch = <color=lime>{endNode.startsBranch}</color>");
+
+
+        GenerateVoxels(Utilities.GenerateThickLine(startNode.position, endNode.position, startNode.thickness));
         newNodes.Add(startNode);
         newNodes.Add(endNode);
     }
 
     
 
-    void RemoveReachedAttractors()
-    {
-        List<Vector3Int> newAttractors = new List<Vector3Int>(attractors);
-
-        foreach (var attractor in attractors)
-        {
-            foreach (var node in nodes)
-            {
-                float distance = Vector3Int.Distance(node.position, attractor);
-                //if (distance < 5)
-                //   print($"Distance <color=yellow>{node.position}</color> --> <color=lime>{attractor}</color> = {distance}");
-
-                if (distance < attractorKillRadius)
-                {
-                    newAttractors.Remove(attractor);
-                    //print("<color=red>Removed attractor at " + attractor + "</color>");
-                    if (showAttractors)
-                        WorldManager.Instance.container[attractor] = new Voxel()
-                        {
-                            //id = 1
-                            id = 2
-                        };
-                }
-            }
-        }
-        attractors = new HashSet<Vector3Int>(newAttractors);
-    }
-
-    public void GenerateAttractors()
-    {
-        Vector3Int meshBounds;
-        AttractorSpawnArea spawnArea;
-        attractorSpawnArea.GetComponent<MeshRenderer>().enabled = false;
-        MeshCollider meshCollider = attractorSpawnArea.GetComponent<MeshCollider>();
-        if(meshCollider != null)
-        {
-            attractorSpawnArea.transform.localScale = Vector3.Scale(attractorSpawnArea.transform.localScale, spawnAreaScale);
-            attractorSpawnArea.transform.position += spawnAreaOffset;
-            Vector3Int calculatedOffset = new Vector3Int(
-                Mathf.RoundToInt(attractorSpawnArea.transform.position.x),
-                Mathf.RoundToInt(meshCollider.bounds.center.y - meshCollider.bounds.extents.y),   // center contains local position coords
-                Mathf.RoundToInt(attractorSpawnArea.transform.position.z));
-            meshBounds = Vector3Int.RoundToInt(meshCollider.bounds.extents);
-            spawnArea = new AttractorSpawnArea(meshBounds, Vector3Int.RoundToInt(calculatedOffset));
-        }
-        else
-        {
-            Debug.LogWarning("No mesh collider attached to the spawn area!");
-            meshBounds = new Vector3Int(100, 50, 100);
-            spawnArea = new AttractorSpawnArea(meshBounds, Vector3Int.zero);
-        }
-
-
-        for (int i = 0; i < attractorsAmount; i++)
-        {
-            Vector3Int randPos = new Vector3Int(
-                Random.Range(spawnArea.xBounds.from, spawnArea.xBounds.to),
-                Random.Range(spawnArea.yBounds.from, spawnArea.yBounds.to),
-                Random.Range(spawnArea.zBounds.from, spawnArea.zBounds.to)
-                );
-            /*Vector3Int randPos = new Vector3Int(
-                Random.Range(-meshBounds.x, meshBounds.x),
-                Random.Range(0, meshBounds.y*2),
-                Random.Range(-meshBounds.z, meshBounds.z)
-                );
-            randPos += spawnAreaOffset;*/
-            if (IsPointInCollider(meshCollider, randPos))
-                attractors.Add(randPos);
-
-        }
-        attractorSpawnArea.GetComponent<MeshCollider>().enabled = false;
-    }
-
-    public void ShowAttractors()
-    {
-        if (showAttractors)
-            foreach (var attractor in attractors)
-            {
-                WorldManager.Instance.container[attractor] = new Voxel()
-                {
-                    id = 6
-                };
-            }
-    }
-
     void GenerateVoxels(List<Vector3Int> positions)
     {
         foreach (var pos in positions)
         {
-            if (WorldManager.Instance.container[pos].id == 2) continue;
+            // Don't overwrite killed attractors
+            if (WorldManager.Instance.container[pos].id == killedAttractorVoxelID) continue;
             WorldManager.Instance.container[pos] = new Voxel()
             {
-                //id = 1
-                id = 3
+                id = branchVoxelID
             };
         }
     }
@@ -481,5 +458,97 @@ public class SpaceColonizer : MonoBehaviour
         if (enableDebug)
             Debug.Log(str);
     }
+
+    /*public List<Vector3Int> GenerateThickLine(Segment segment)
+    {
+        // Get the thin center line
+        List<Vector3Int> thinLine = GenerateLine(segment.startPos, segment.endPos);
+
+        HashSet<Vector3Int> thickLine = new HashSet<Vector3Int>(); // HashSet to automatically discard duplicate overlapping points
+        int radius = segment.thickness;
+        int radiusSquared = radius * radius;
+
+        // The branch must clear its own thickness before it cares about collisions
+        int graceDistanceSquared = (radius * 3) * (radius * 3);
+
+        // Make grace zone based on the size of the parent branch thickness
+        //int graceDistanceSquared = segment.parentThickness * segment.parentThickness * 2;
+        //print($"graceDistanceSquared = {graceDistanceSquared}");
+        //print($"<color=lime>New line {A} --> {B}</color>");
+
+        // Applying a spherical brush around every point
+        foreach (Vector3Int point in thinLine)
+        {
+            bool collisionDetected = false;
+            List<Vector3Int> currentSpherePoints = new List<Vector3Int>();
+            // Calculate distance from start point A to handle the grace zone
+            bool insideGraceZone = (point - segment.startPos).sqrMagnitude <= graceDistanceSquared;
+
+            for (int x = -radius; x <= radius; x++)
+            {
+                for (int y = -radius; y <= radius; y++)
+                {
+                    for (int z = -radius; z <= radius; z++)
+                    {
+                        // Check if this local offset is within the sphere's radius
+                        // (doing x*x + y*y + z*z is much faster than Vector3.Distance)
+                        if (x * x + y * y + z * z <= radiusSquared)
+                        {
+                            //thickLine.Add(new Vector3Int(point.x + x, point.y + y, point.z + z));
+
+                            Vector3Int voxelPos = new Vector3Int(point.x + x, point.y + y, point.z + z);
+
+                            // If it's occupied and we are out of the grace zone it is a collision
+                            if (!insideGraceZone && WorldManager.Instance.container[voxelPos].id != 0)
+                            {
+                                // If smaller branch collisions can be ignored
+                                if (allowedBranchCollisionLevel > 0)
+                                {
+                                    // If it is the smaller branches that collide with each other, ignore collision
+                                    if (WorldManager.Instance.container[voxelPos].id - 1 <= allowedBranchCollisionLevel
+                                        && segment.thickness <= allowedBranchCollisionLevel)
+                                    {
+                                        currentSpherePoints.Add(voxelPos);
+                                        continue;
+                                    }
+                                }
+
+                                // Ignore collisions with the parent branch
+                                if (segment.parentBranchId != WorldManager.Instance.container[voxelPos].branchId)
+                                {
+                                    // Make the small branches move away, big branches will ignore collisions with smaller
+                                    if (segment.thickness <= WorldManager.Instance.container[voxelPos].id - 1)
+                                    {
+                                        collisionDetected = true;
+                                        branchCollision.collisionsCount++;
+                                        branchCollision.didCollide = true;
+                                        break;
+                                    }
+                                }
+                            }
+
+                            currentSpherePoints.Add(voxelPos);
+                        }
+                    }
+                    if (collisionDetected) break;
+                }
+                if (collisionDetected) break;
+            }
+
+            // If hit something outside the grace zone, stop growing the branch right here
+            if (collisionDetected)
+            {
+                break;
+            }
+
+            // Otherwise, commit these points to the branch
+            foreach (var pos in currentSpherePoints)
+            {
+                thickLine.Add(pos);
+            }
+        }
+
+        return thickLine.ToList();
+    }*/
 
 }
