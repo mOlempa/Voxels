@@ -11,6 +11,10 @@ public struct SCNode
     public int branchLevel;
     public int thickness;
     public int length;
+    public int branchOuts;
+
+    public ushort branchId;
+    public ushort parentBranchId;
 
     public SCNode Clone()
     {
@@ -22,7 +26,10 @@ public struct SCNode
             energy = this.energy,
             branchLevel = this.branchLevel,
             thickness = this.thickness,
-            length = this.length
+            length = this.length,
+            branchOuts = this.branchOuts,
+            branchId = this.branchId,
+            parentBranchId = this.parentBranchId,
         };
     }
 

@@ -9,6 +9,7 @@ using UnityEngine.UIElements;
 using static UnityEditor.PlayerSettings;
 using static UnityEngine.Rendering.HableCurve;
 using static Utilities;
+using static LeavesManager;
 using static Constants;
 using Unity.VisualScripting;
 using System.Text;
@@ -22,8 +23,13 @@ public class SpaceColonizer : MonoBehaviour
     public int iterations = 5;
     [Range(1, 50)]
     public int maxThickness = 5;
-    [Range(0,1)]
-    public float biasStrength = 0;
+    [Range(0, 1)]
+    public float branchDirBiasStrength = 0;
+    [Highlight(0.6f, 0.7f, 0.6f)]
+    public Vector3 addedBiasDirection = Vector3.up;
+    [Highlight(0.6f, 0.7f, 0.6f)]
+    [Range(0, 1)]
+    public float addedBiasStrength = 0;
 
     [Header("Trunk")]
     [Range(1, 6)]
@@ -33,19 +39,30 @@ public class SpaceColonizer : MonoBehaviour
     [Header("Nodes Settings")]
     [Range(2, 100)]
     public int segmentLength = 5;
-    [Range(5, 180)]
+    [Range(0, 180)]
     public int maxBranchRotationAngle = 45;
-    [Range(5, 180)]
+    [Range(0, 180)]
     public int maxDebranchRotationAngle = 90;
     [Range(1, 100)]
     public int maxBranchLevel = 10;
+    [Range(0, 5)]
+    public int maxBranchOuts = 2;
     [Highlight(0.7f, 0.7f, 1f)]
     public bool seekingBranchesEnabled = false;
     [Highlight(0.7f, 0.7f, 1f)]
     [Range(0, 1)]
     public float randomizeBranchDirection = 0;
 
-    
+    [Header("Collision Stuff")]
+    [Range(0, 10)]
+    public int allowedBranchCollisionLevel = 1;
+    public int branchTrialTimes = 0;
+
+    [Header("Leaves")]
+    [SerializeField] LeafShape leafShape;
+    public int recursionLevel = 3;
+
+
     HashSet<SCNode> nodes = new HashSet<SCNode>();
     //HashSet<Vector3Int> attractors = new HashSet<Vector3Int>();
     SpatialHashGrid<SCNode> nodesGrid;
@@ -56,9 +73,10 @@ public class SpaceColonizer : MonoBehaviour
     AttractorManager attractorManager;
 
     //byte attractorVoxelID = 6;
-    byte killedAttractorVoxelID = 2;
-    byte branchVoxelID = 3;
+    byte killedAttractorVoxelID = 3;
+    byte branchVoxelID = 2;
 
+    ushort assignableBranchId = 0;
 
     public void Colonize(Vector3Int startingPoint)
     {
@@ -72,7 +90,7 @@ public class SpaceColonizer : MonoBehaviour
         attractorManager.GenerateAttractors();
         attractorManager.ShowAttractors();
 
-
+        //return;
 
         List<SCNode> branchStartingNodes = trunk.GenerateTrunk(startingPoint);
 
@@ -88,9 +106,12 @@ public class SpaceColonizer : MonoBehaviour
                 branchLevel = 0,
                 thickness = maxThickness > node.thickness ? node.thickness : maxThickness,
                 length = segmentLength,
+                branchOuts = 0,
+                branchId = assignableBranchId,
+                parentBranchId = 0,
             });
             //Debug.Log($"Creating new branch node {nodes.Last().position} with thickness {nodes.Last().thickness}");
-
+            assignableBranchId++;
             // Populating the hash grid
             RepopulateNodesGrid();
         }
@@ -109,6 +130,9 @@ public class SpaceColonizer : MonoBehaviour
 
             }
         }
+
+        GrowLeaves();
+
     }
 
     public string GetDataString()
@@ -117,7 +141,9 @@ public class SpaceColonizer : MonoBehaviour
         result.AppendLine($"--General--");
         result.AppendLine($"iterations: {iterations}");
         result.AppendLine($"maxThickness: {maxThickness}");
-        result.AppendLine($"biasStrength: {biasStrength}");
+        result.AppendLine($"branchDirBiasStrength: {branchDirBiasStrength}");
+        result.AppendLine($"addedBiasDirection: {addedBiasDirection}");
+        result.AppendLine($"addedBiasStrength: {addedBiasStrength}");
         result.AppendLine();
         result.AppendLine($"--Trunk--");
         result.AppendLine($"branchesPerTrunkNode: {branchesPerTrunkNode}");
@@ -134,10 +160,20 @@ public class SpaceColonizer : MonoBehaviour
         result.AppendLine($"maxBranchRotationAngle: {maxBranchRotationAngle}");
         result.AppendLine($"maxDebranchRotationAngle: {maxDebranchRotationAngle}");
         result.AppendLine($"maxBranchLevel: {maxBranchLevel}");
+        result.AppendLine($"maxBranchOuts: {maxBranchOuts}");
+        result.AppendLine($"seekingBranchesEnabled: {seekingBranchesEnabled}");
         result.AppendLine($"randomizeBranchDirection: {randomizeBranchDirection}");
-        return result.ToString();
+        result.AppendLine();
+        result.AppendLine($"--Collision--");
+        result.AppendLine($"allowedBranchCollisionLevel: {allowedBranchCollisionLevel}");
+        result.AppendLine($"branchTrialTimes: {branchTrialTimes}");
+        result.AppendLine();
+        result.AppendLine($"--Leaves--");
+        result.AppendLine($"leafShape: {leafShape.name}");
 
+        return result.ToString();
     }
+
 
     void GrowBranches()
     {
@@ -159,6 +195,41 @@ public class SpaceColonizer : MonoBehaviour
         RepopulateNodesGrid();
     }
 
+    void GrowLeaves()
+    {
+        if (leafShape == null || leafShape.leafPoints.Length == 0) return;
+
+        List<SCNode> leafNodes = new List<SCNode>();
+        //string ids = "";
+        foreach(var node in nodes)
+        {
+            //ids += $"{node.branchId}-{node.parentBranchId} == ";
+            if (!node.startsBranch)
+            {
+                // Add either 1 or 2 leaves
+                for(int n = 0; n < Random.Range(1, 2);  n++) leafNodes.Add(node);
+
+                for (int i = 0; i < recursionLevel; i++)
+                {
+                    // Find parent of the last added parent
+                    SCNode parent = nodes.FirstOrDefault(n => n.branchId == leafNodes.Last().parentBranchId);
+                    if (parent.branchId != leafNodes.Last().parentBranchId) break;
+                    // Add this new parent
+                   //leafNodes.Add(parent);
+                    for (int n = 0; n < Random.Range(1, 2); n++) leafNodes.Add(parent);
+
+                }
+            }
+        }
+        //Debug.Log(ids);
+
+        foreach(SCNode node in leafNodes)
+        {
+            Vector3 dir = Vector3.Slerp(node.direction, Random.insideUnitSphere, 0.8f);
+            GenerateLeaf(leafShape, node.position, Quaternion.LookRotation(dir, Vector3.up));
+        }
+    }
+
     void RepopulateNodesGrid()
     {
         nodesGrid = new SpatialHashGrid<SCNode>(attractorManager.maxDistance);
@@ -172,13 +243,6 @@ public class SpaceColonizer : MonoBehaviour
     void FindNearestNodes()
     {
         nodesWithAttractors.Clear();
-        // TODO: attractors here HAS TO BE CHANGED TO SPATIAL HASH GRID!
-
-        /*foreach(var attractor in attractors)
-        {
-            List<SCNode> nearbyNodes = nodesGrid.GetNearby(attractor);
-
-        }*/
 
         foreach (var attractor in attractorManager.attractors)
         {
@@ -221,18 +285,25 @@ public class SpaceColonizer : MonoBehaviour
 
     void ManageNewBranch(SCNode node)
     {
+        // TODO: Make a separate list for nodes that won't grow branches anymore and connect it at the end?
         if (node.branchLevel >= maxBranchLevel)
         {
             print($"<color=red>XX</color> Max branch level reached for node <color=yellow>{node.position}</color>");
             newNodes.Add(node.Clone());
             return;
         }
-        /*if(node.length < 3)
+        if (node.branchOuts >= maxBranchOuts)
         {
-            print($"<color=red>XX</color> Node reached minimal length <color=yellow>{node.position}</color>");
+            print($"<color=red>XX</color> Max branch outs reached for node <color=yellow>{node.position}</color>");
             newNodes.Add(node.Clone());
             return;
-        }*/
+        }
+        if (node.IsDead)
+        {
+            print($"<color=red>XX</color> Branch dead. Stopped branch growth at <color=yellow>{node.position}</color>");
+            newNodes.Add(node.Clone());
+            return;
+        }
 
         // If there are any attractors nearby
         if (nodesWithAttractors.ContainsKey(node.position))
@@ -259,15 +330,14 @@ public class SpaceColonizer : MonoBehaviour
             if (directionVec.Equals(Vector3.zero)) return;
 
             // Make the branch growth biased
-            Vector3 biasedDirectionVec = Vector3.Slerp(directionVec, node.direction, biasStrength);
+            Vector3 biasedDirectionVec = Vector3.Slerp(directionVec, node.direction, branchDirBiasStrength);
+            if(addedBiasStrength > 0)
+                biasedDirectionVec = Vector3.Slerp(biasedDirectionVec, addedBiasDirection.normalized, addedBiasStrength);
+
 
             Vector3Int endpointOffset = Vector3Int.RoundToInt(biasedDirectionVec * node.length);
 
             CreateSegment(node, endpointOffset, biasedDirectionVec, false);
-            /*(SCNode startNode, SCNode endNode) branchNodes =
-                GenerateStartEndNodes(node, endpointOffset, biasedDirectionVec, false);
-
-            CreateSegment(branchNodes.startNode, branchNodes.endNode);*/
         }
         // If no attractors nearby
         else
@@ -293,15 +363,13 @@ public class SpaceColonizer : MonoBehaviour
                 Vector3 randomOffset = Random.insideUnitSphere * randomizeBranchDirection;
                 Vector3 randomDirection = (node.direction + randomOffset).normalized;
 
+                /*if (addedBiasStrength > 0)
+                    randomDirection = Vector3.Slerp(randomDirection, addedBiasDirection.normalized, addedBiasStrength);*/
+
                 Vector3Int endpointOffset = Vector3Int.RoundToInt(randomDirection * node.length);
                 // Create a new segment
                 CreateSegment(node, endpointOffset, randomDirection, true);
 
-                /*(SCNode startNode, SCNode endNode) branchNodes =
-                    GenerateStartEndNodes(node, endpointOffset, randomDirection, true);
-
-                // Create a new segment
-                CreateSegment(branchNodes.startNode, branchNodes.endNode);*/
             }
             else
             {
@@ -340,44 +408,6 @@ public class SpaceColonizer : MonoBehaviour
         return Vector3.zero;
     }
 
-    // Creates start and end node objects
-    /*(SCNode startNode, SCNode endNode) GenerateStartEndNodes(SCNode node, Vector3Int endpointOffset, 
-        Vector3 endpointDirection, bool decreaseEnergy)
-    {
-        int branchLevel = node.startsBranch ? node.branchLevel + 1 : node.branchLevel;
-        int length = node.length; //-  branchLevel/maxBranchLevel;
-        SCNode startNode = new SCNode()
-        {
-            position = node.position,
-            direction = node.direction,
-            energy = decreaseEnergy ? node.energy : MAX_ENERGY,
-            branchLevel = branchLevel,
-            startsBranch = true,
-            thickness = node.thickness,
-            length = length,
-        };
-
-        int thickness;
-        if (node.thickness > maxThickness) thickness = maxThickness;
-        else thickness = node.startsBranch ? (node.thickness > 1 ? node.thickness - 1 : 1) : node.thickness;
-
-        SCNode endNode = new SCNode()
-        {
-            position = node.position + endpointOffset,
-            direction = endpointDirection,
-            energy = decreaseEnergy ? node.energy - 1 : MAX_ENERGY,
-            branchLevel = branchLevel,
-            startsBranch = false,
-            thickness = thickness,
-            length = length,
-            //length = node.startsBranch && length > 3 ? length - 1 : length,
-        };
-
-        print($"New start node: {startNode.position} -- startsBranch = <color=lime>{startNode.startsBranch}</color>");
-        print($"New end node: {endNode.position} -- startsBranch = <color=lime>{endNode.startsBranch}</color>");
-
-        return (startNode, endNode);
-    }*/
 
 
     Vector3 ClampDirectionAngle(Vector3 directionVec, SCNode node)
@@ -397,8 +427,7 @@ public class SpaceColonizer : MonoBehaviour
     }
 
 
-    void CreateSegment(SCNode node, Vector3Int endpointOffset,
-        Vector3 endpointDirection, bool decreaseEnergy)
+    void CreateSegment(SCNode node, Vector3Int endpointOffset, Vector3 endpointDirection, bool decreaseEnergy)
     {
         int branchLevel = node.startsBranch ? node.branchLevel + 1 : node.branchLevel;
         int length = node.length; //-  branchLevel/maxBranchLevel;
@@ -411,11 +440,31 @@ public class SpaceColonizer : MonoBehaviour
             startsBranch = true,
             thickness = node.thickness,
             length = length,
+            branchOuts = node.branchOuts + 1,
+            parentBranchId = node.parentBranchId,
+            branchId = node.branchId,
         };
 
         int thickness;
+        // if inherited thickness is larger than the max thickness, clamp it
         if (node.thickness > maxThickness) thickness = maxThickness;
-        else thickness = node.startsBranch ? (node.thickness > 1 ? node.thickness - 1 : 1) : node.thickness;
+        // if the node starts a branch already decrease the thickness (if larger than 1), otherwise
+        // (case: node ends the branch) inherit thickness
+        //else thickness = node.startsBranch ? (node.thickness > 1 ? node.thickness - 1 : 1) : node.thickness;
+        else 
+        {
+            if (node.startsBranch)
+            {
+                thickness = node.thickness > 1 ? node.thickness - 1 : 1;
+            }
+            else
+            {
+                /*thickness = (int)(node.branchLevel / maxBranchLevel * maxThickness);
+                Debug.Log($"thickness {thickness} = {node.branchLevel} / {maxBranchLevel} * {maxthi}");*/
+                if(node.branchLevel == 0) thickness = node.thickness > 1 ? node.thickness - 1 : 1;
+                else thickness = node.thickness;
+            }
+        }
 
         SCNode endNode = new SCNode()
         {
@@ -426,6 +475,9 @@ public class SpaceColonizer : MonoBehaviour
             startsBranch = false,
             thickness = thickness,
             length = length,
+            branchOuts = 0,
+            parentBranchId = node.branchId,
+            branchId = assignableBranchId,
             //length = node.startsBranch && length > 3 ? length - 1 : length,
         };
 
@@ -433,14 +485,62 @@ public class SpaceColonizer : MonoBehaviour
         print($"New end node: {endNode.position} -- startsBranch = <color=lime>{endNode.startsBranch}</color>");
 
 
-        GenerateVoxels(Utilities.GenerateThickLine(startNode.position, endNode.position, startNode.thickness));
+        //GenerateVoxels(Utilities.GenerateThickLine(startNode.position, endNode.position, startNode.thickness));
+        List<Vector3Int> voxelPositions = GenerateThickLine(startNode, endNode, startNode.thickness);
+
+        //Vector3 savedDir = endNode.direction;
+
+        for (int i = 0; i < branchTrialTimes; i++)
+        {
+            WorldManager.Instance.branchCollision.didCollide = false;
+            voxelPositions = GenerateThickLine(startNode, endNode, startNode.thickness);
+            // If no collision detected, proceed with the branch
+            if (!WorldManager.Instance.branchCollision.didCollide) break;
+            //print("<color=cyan>Reassigning branch angle...</color>");
+
+            Vector3 randomOffset = Random.insideUnitSphere;
+            Vector3 randomDirection = (node.direction + randomOffset).normalized;
+            Vector3 biasedDirectionVec = Vector3.Slerp(randomDirection, addedBiasDirection, addedBiasStrength);
+
+            Vector3Int offset = Vector3Int.RoundToInt(biasedDirectionVec * node.length);
+
+            /*Vector3 biasedCollisionDir = collisionBranchGrowthBias == GrowthBiasType.Branch ?
+                GetLocalEndpoint(randLength, currentNode.eulerAngles) : GetDirection(collisionBranchGrowthBias);
+
+            // Biased towards specific branch direction
+            currentNode.position = savedPos + GetLocalEndpoint(randLength,
+                GetBiasedLocalRotation(currentNode.eulerAngles, biasedCollisionDir));*/
+
+            endNode.position = node.position + offset;
+            endNode.direction = biasedDirectionVec;
+        }
+
+        if (WorldManager.Instance.branchCollision.didCollide)
+        {
+            Debug.Log($"Collision at <color=red>{startNode.position}</color>!");
+            newNodes.Add(startNode);
+            //Debug.Log($"Branch stays at {startNode.position}");
+        }
+        else
+        {
+            GenerateVoxels(voxelPositions, startNode.branchId);
+            newNodes.Add(startNode);
+            newNodes.Add(endNode);
+            assignableBranchId++;
+            /*Debug.Log($"New branch {startNode.position} - {endNode.position}  -->  " +
+                $"<color=lime>id: {startNode.branchId}-{endNode.branchId}</color>");*/
+        }
+
+
+        /*GenerateVoxels(voxelPositions, startNode.branchId);
         newNodes.Add(startNode);
-        newNodes.Add(endNode);
+        newNodes.Add(endNode);*/
+        //assignableBranchId++;
     }
 
     
 
-    void GenerateVoxels(List<Vector3Int> positions)
+    void GenerateVoxels(List<Vector3Int> positions, ushort branchId)
     {
         foreach (var pos in positions)
         {
@@ -448,7 +548,8 @@ public class SpaceColonizer : MonoBehaviour
             if (WorldManager.Instance.container[pos].id == killedAttractorVoxelID) continue;
             WorldManager.Instance.container[pos] = new Voxel()
             {
-                id = branchVoxelID
+                id = branchVoxelID,
+                branchId = branchId
             };
         }
     }
@@ -459,22 +560,17 @@ public class SpaceColonizer : MonoBehaviour
             Debug.Log(str);
     }
 
-    /*public List<Vector3Int> GenerateThickLine(Segment segment)
+    public List<Vector3Int> GenerateThickLine(SCNode startNode, SCNode endNode, int thickness)
     {
         // Get the thin center line
-        List<Vector3Int> thinLine = GenerateLine(segment.startPos, segment.endPos);
+        List<Vector3Int> thinLine = GenerateLine(startNode.position, endNode.position);
 
         HashSet<Vector3Int> thickLine = new HashSet<Vector3Int>(); // HashSet to automatically discard duplicate overlapping points
-        int radius = segment.thickness;
+        int radius = thickness;
         int radiusSquared = radius * radius;
 
         // The branch must clear its own thickness before it cares about collisions
         int graceDistanceSquared = (radius * 3) * (radius * 3);
-
-        // Make grace zone based on the size of the parent branch thickness
-        //int graceDistanceSquared = segment.parentThickness * segment.parentThickness * 2;
-        //print($"graceDistanceSquared = {graceDistanceSquared}");
-        //print($"<color=lime>New line {A} --> {B}</color>");
 
         // Applying a spherical brush around every point
         foreach (Vector3Int point in thinLine)
@@ -482,7 +578,7 @@ public class SpaceColonizer : MonoBehaviour
             bool collisionDetected = false;
             List<Vector3Int> currentSpherePoints = new List<Vector3Int>();
             // Calculate distance from start point A to handle the grace zone
-            bool insideGraceZone = (point - segment.startPos).sqrMagnitude <= graceDistanceSquared;
+            bool insideGraceZone = (point - startNode.position).sqrMagnitude <= graceDistanceSquared;
 
             for (int x = -radius; x <= radius; x++)
             {
@@ -504,9 +600,12 @@ public class SpaceColonizer : MonoBehaviour
                                 // If smaller branch collisions can be ignored
                                 if (allowedBranchCollisionLevel > 0)
                                 {
+                                   /* Debug.Log($"WorldManager.Instance.container[voxelPos].id - 1: " +
+                                        $"{WorldManager.Instance.container[voxelPos].id - 1}, " +
+                                        $"allowedBranchCollisionLevel: {allowedBranchCollisionLevel}");*/
                                     // If it is the smaller branches that collide with each other, ignore collision
                                     if (WorldManager.Instance.container[voxelPos].id - 1 <= allowedBranchCollisionLevel
-                                        && segment.thickness <= allowedBranchCollisionLevel)
+                                        && thickness <= allowedBranchCollisionLevel)
                                     {
                                         currentSpherePoints.Add(voxelPos);
                                         continue;
@@ -514,14 +613,22 @@ public class SpaceColonizer : MonoBehaviour
                                 }
 
                                 // Ignore collisions with the parent branch
-                                if (segment.parentBranchId != WorldManager.Instance.container[voxelPos].branchId)
+                                if (startNode.parentBranchId != WorldManager.Instance.container[voxelPos].branchId)
                                 {
-                                    // Make the small branches move away, big branches will ignore collisions with smaller
-                                    if (segment.thickness <= WorldManager.Instance.container[voxelPos].id - 1)
+                                    // If the branches have the same parent and same-parent collision can be ignored
+                                    /*if (ignoreSameParentBranchCollision &&
+                                        startNode.parentBranchId == allSegments[collidedBranchId].parentBranchId)
                                     {
+
+                                    }
+                                    // Make the small branches move away, big branches will ignore collisions with smaller
+                                    else */if (thickness <= WorldManager.Instance.container[voxelPos].id - 1)
+                                    {
+                                        Debug.Log($"-> Collision of branch - thickness: {thickness}, " +
+                                            $"branchId: {startNode.branchId}, parentBranchId: {startNode.parentBranchId}");
                                         collisionDetected = true;
-                                        branchCollision.collisionsCount++;
-                                        branchCollision.didCollide = true;
+                                        WorldManager.Instance.branchCollision.collisionsCount++;
+                                        WorldManager.Instance.branchCollision.didCollide = true;
                                         break;
                                     }
                                 }
@@ -549,6 +656,6 @@ public class SpaceColonizer : MonoBehaviour
         }
 
         return thickLine.ToList();
-    }*/
+    }
 
 }

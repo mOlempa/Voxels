@@ -189,7 +189,8 @@ public class Utilities
         return thickLine.ToList();
     }
 
-    public static bool IsPointInCollider(MeshCollider other, Vector3 point)
+
+    public static bool IsPointInCollider(Collider other, Vector3 point)
     {
         Vector3 direction = other.bounds.center - point;
         RaycastHit[] hits = Physics.RaycastAll(point, direction);

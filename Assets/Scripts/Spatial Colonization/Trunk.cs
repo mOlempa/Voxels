@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using static Utilities;
 using static Constants;
+using UnityEditor.Experimental.GraphView;
 
 public class Trunk : MonoBehaviour
 {
@@ -18,9 +19,18 @@ public class Trunk : MonoBehaviour
     public float minBranchHeight = 0;
     [Range(0, 1)]
     public float maxBranchHeight = 1;
+    [Range(0, 1)]
+    public float biasStrength = 0;
 
     float unroundedCurrentThickness = 1;
     public List<SCNode> nodes;
+
+    public Vector3 GetBiasedRandomDir(Vector3 currentDir)
+    {
+        Vector3 randomDir = Random.insideUnitSphere;
+        Vector3 biasedDirectionVec = Vector3.Slerp(randomDir, currentDir, biasStrength);
+        return biasedDirectionVec.normalized;
+    }
 
     public List<SCNode> GenerateTrunk(Vector3Int startingPoint)
     {
@@ -45,7 +55,7 @@ public class Trunk : MonoBehaviour
             SCNode node = new SCNode()
             {
                 position = nodes[i - 1].position + Vector3Int.RoundToInt(nodes[i - 1].direction * segmentLength),
-                direction = nodes[i - 1].direction,   // take previous direction
+                direction = GetBiasedRandomDir(nodes[i - 1].direction),   // take previous direction
                 thickness = Mathf.RoundToInt(unroundedCurrentThickness) > 0 ? Mathf.RoundToInt(unroundedCurrentThickness) : 1,
                 startsBranch = false,
                 energy = MAX_ENERGY,

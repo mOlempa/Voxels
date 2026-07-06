@@ -10,6 +10,9 @@ using static Utilities;
 
 public class WorldManager : MonoBehaviour
 {
+    [HideInInspector] 
+    public BranchCollisionHelper branchCollision = new BranchCollisionHelper();
+
     [SerializeField]
     public LSystemGenerator lSystemGenerator;
 
@@ -18,6 +21,9 @@ public class WorldManager : MonoBehaviour
 
     [SerializeField]
     public SpaceColonizer spaceColonizer;
+
+    [SerializeField]
+    ObstacleGenerator obstacleGenerator;
 
     public VoxelColor[] worldColors;
     public Material plantMaterial;
@@ -48,23 +54,22 @@ public class WorldManager : MonoBehaviour
 
         container.Initialize(plantMaterial, Vector3.zero);
 
-        // Space Colonization Generation -----
-        //SpaceColonizer spaceColonizer = new SpaceColonizer();
+        if(obstacleGenerator != null)
+        {
+            obstacleGenerator.GenerateObstacle();
+        }
 
-        //spaceColonizer.GenerateAttractors(100, new Vector3Int(50, 100, 50));
+        // Space Colonization Generation -----
         spaceColonizer.Colonize(new Vector3Int(0, 0, 0));
-        string scResult = spaceColonizer.GetDataString();
+        string result = spaceColonizer.GetDataString();
         // -------
 
 
         // L-System Plant Generation------
 
         /*List<Symbol> sentence = lSystemGenerator.GenerateSentence();
-        string lResult = lSystemGenerator.GetDataString();
-
-        // Collision detection generation
         structureGenerator.ConvertSentenceToSegments(sentence);
-         */
+        string result = structureGenerator.GetDataString();*/
 
         // -------
 
@@ -77,7 +82,7 @@ public class WorldManager : MonoBehaviour
 
         using (StreamWriter sw = new StreamWriter(dir + $"/{time}--data.txt", true))
         {
-            sw.Write(scResult);
+            sw.Write(result);
             //sw.WriteLine("This is a new text file!");
         }
 

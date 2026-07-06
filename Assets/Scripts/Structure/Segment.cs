@@ -27,21 +27,4 @@ public struct Segment
         }
     }
 
-    /*public Segment ChangeEndpointPos(Vector3Int pos)
-    {
-        return new Segment
-        {
-            startPoint = startPoint,
-            endPoint = new LNode
-            {
-                position = pos,
-                branchLevel = endPoint.branchLevel,
-                anglesDeg = endPoint.anglesDeg,
-                thickness = endPoint.thickness
-            },
-            thickness = thickness,
-            branchLevel = branchLevel,
-            length = length
-        };
-    }*/
 }

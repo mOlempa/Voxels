@@ -61,13 +61,15 @@ public partial class Container : MonoBehaviour
 
         foreach (KeyValuePair<Vector3, Voxel> kvp in data)
         {
-            // don't check empty voxels
+            // Don't check empty voxels
             if (kvp.Value.id == 0) continue;
 
             blockPos = kvp.Key;
             block = kvp.Value;
 
-            if (block.id == 1) voxelColor = WorldManager.Instance.worldColors[5];   // id = 1 reserved for leaves
+            // Don't assign non-existing colors
+            if(block.id > WorldManager.Instance.worldColors.Length) voxelColor = new VoxelColor() { color = Color.gray };
+            else if (block.id == 1) voxelColor = WorldManager.Instance.worldColors[5];   // id = 1 reserved for leaves
             else voxelColor = WorldManager.Instance.worldColors[block.id - 2];   // cause 0 is air
             colorAlpha = voxelColor.color;
             colorAlpha.a = 1;

@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 using static Utilities;
 
@@ -36,7 +37,6 @@ public class AttractorManager : MonoBehaviour
     public void RemoveReachedAttractors(HashSet<SCNode> nodes)
     {
         List<Vector3Int> newAttractors = new List<Vector3Int>(attractors);
-
         foreach (var attractor in attractors)
         {
             foreach (var node in nodes)
@@ -84,7 +84,9 @@ public class AttractorManager : MonoBehaviour
             meshBounds = new Vector3Int(100, 50, 100);
             spawnArea.Calculate(meshBounds, Vector3Int.zero);
         }
-
+        int smallDist = 0;
+        int medDist = 0;
+        int bigDist = 0;
         for (int i = 0; i < attractorsAmount; i++)
         {
             Vector3Int randPos = new Vector3Int(
@@ -99,10 +101,27 @@ public class AttractorManager : MonoBehaviour
                 );
             randPos += spawnAreaOffset;*/
             if (IsPointInCollider(meshCollider, randPos))
+            {
+                //calc distance from center
+                float distance = Vector3.Distance(randPos, meshCollider.bounds.center);
+
+                // the futher the distance the better chance for adding the attractor
+                float randDistance = Vector3.Distance(meshCollider.bounds.center + 
+                    Random.insideUnitSphere * meshCollider.bounds.extents.x, meshCollider.bounds.center);
+
+                /*if (distance > randDistance)
+                {
+                    if (distance <= 77) smallDist++;
+                    if (distance <= 97 && distance > 77) medDist++;
+                    if (distance > 97) bigDist++;
+                    attractors.Add(randPos);
+                }*/
                 attractors.Add(randPos);
+            }
 
         }
         attractorSpawnArea.GetComponent<MeshCollider>().enabled = false;
+        Debug.Log($"SMALL: {smallDist} -- MEDIUM: {medDist} -- BIG: {bigDist}");
     }
 
 

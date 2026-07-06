@@ -6,7 +6,9 @@ using UnityEngine.UIElements;
 using System.Linq;
 using static UnityEngine.Rendering.HableCurve;
 using static Utilities;
+using static LeavesManager;
 using static GrowthBias;
+using System.Text;
 
 
 public class StructureGenerator : MonoBehaviour
@@ -16,7 +18,7 @@ public class StructureGenerator : MonoBehaviour
     [SerializeField] public LeafShape leafShape;
     private Grammar grammar;
     public bool enablePrintDebug = false;
-    //public bool ignoreThinBranchCollision = true;
+    public bool ignoreSameParentBranchCollision = true;
 
     public int maxLength = 5;
     public int minLength = 3;
@@ -24,6 +26,11 @@ public class StructureGenerator : MonoBehaviour
     public int minAngle = 15;
     public int maxThickness = 5;
     public Vector3 startingAngles = new Vector3(0, 0, 0);
+    [Header("Growth Bias")]
+    public GrowthBiasType branchGrowthBias = GrowthBiasType.None;
+    [Range(0f, 1f)]
+    public float biasStrength = 1;
+
     private BranchCollisionHelper branchCollision = new BranchCollisionHelper();
 
     [Header("Branch Collision Handling")]
@@ -36,9 +43,11 @@ public class StructureGenerator : MonoBehaviour
     public int collisionAngleOffset = 10;
 
     [Range(0f, 1f)]
-    public float biasStrength = 1;
+    public float collisionBiasStrength = 1;
 
     public ushort assignableBranchId = 0;
+
+    private Dictionary<ushort, Segment> allSegments = new Dictionary<ushort, Segment>();
 
     private void Awake()
     {
@@ -52,6 +61,38 @@ public class StructureGenerator : MonoBehaviour
         {
             grammar = lSystemGenerator.grammar;
         }
+    }
+
+    public string GetDataString()
+    {
+        StringBuilder result = new StringBuilder();
+        result.AppendLine($"--Grammar--");
+        result.AppendLine($"grammar: {grammar.name}");
+        result.AppendLine();
+        result.AppendLine($"--Leaf--");
+        result.AppendLine($"leafShape: {leafShape.name}");
+        result.AppendLine();
+        result.AppendLine($"--Settings--");
+        result.AppendLine($"iterationLimit: {lSystemGenerator.iterationLimit}");
+        result.AppendLine($"maxLength: {maxLength}");
+        result.AppendLine($"minLength: {minLength}");
+        result.AppendLine($"maxAngle: {maxAngle}");
+        result.AppendLine($"minAngle: {minAngle}");
+        result.AppendLine($"maxThickness: {maxThickness}");
+        result.AppendLine($"startingAngles: {startingAngles}");
+        result.AppendLine($"branchGrowthBias: {branchGrowthBias}");
+        result.AppendLine($"biasStrength: {biasStrength}");
+        result.AppendLine();
+        result.AppendLine($"--Collision--");
+        result.AppendLine($"ignoreSameParentBranchCollision: {ignoreSameParentBranchCollision}");
+        result.AppendLine($"allowedBranchCollisionLevel: {allowedBranchCollisionLevel}");
+        result.AppendLine($"collisionBranchGrowthBias: {collisionBranchGrowthBias}");
+        result.AppendLine($"branchTrialTimes: {branchTrialTimes}");
+        result.AppendLine($"collisionAngleOffset: {collisionAngleOffset}");
+        result.AppendLine($"collisionBiasStrength: {collisionBiasStrength}");
+
+        return result.ToString();
+
     }
 
     //For calculating local rotation for the branch with biased global growth direction
@@ -72,7 +113,7 @@ public class StructureGenerator : MonoBehaviour
         Vector3 unbiasedGlobalDir = unbiasedGlobalRot * Vector3.forward;
         //Debug.Log($"<color=cyan>global forward vector: {unbiasedGlobalDir}</color>");
 
-        Vector3 biasedGlobalDir = Vector3.Slerp(unbiasedGlobalDir, biasDirection.normalized, biasStrength);
+        Vector3 biasedGlobalDir = Vector3.Slerp(unbiasedGlobalDir, biasDirection.normalized, collisionBiasStrength);
         //Debug.Log($"<color=cyan> interpolated vector towards bias: {biasedGlobalDir}</color>");
 
         // Using the previous rotation up vector to prevent the branch from unnaturally twisting along its own axis
@@ -106,7 +147,8 @@ public class StructureGenerator : MonoBehaviour
             rotation = Quaternion.Euler(startingAngles),
             thickness = maxThickness, 
             branchLevel = 0, 
-            prevNodeThickness = maxThickness
+            prevNodeThickness = maxThickness,
+            branchId = assignableBranchId,
         });
         //final += $"<color=#{WorldManager.Instance.worldColors[maxThickness].color.ToHexString().TrimEnd("00")}>";
 
@@ -238,7 +280,7 @@ public class StructureGenerator : MonoBehaviour
 
                 case Action.PlaceLeaf:
                     if (!branchCollision.cutChildBranches)
-                        GenerateLeaf(stack.Peek().position, stack.Peek().rotation);
+                        GenerateLeaf(leafShape, stack.Peek().position, stack.Peek().rotation);
                     break;
 
                 default:
@@ -263,8 +305,15 @@ public class StructureGenerator : MonoBehaviour
             parentBranchId = currentNode.parentBranchId,
         };
         Vector3Int savedPos = currentNode.position;
+
+
+        /*Vector3 biasedDir = branchGrowthBias == GrowthBiasType.Branch ?
+                GetLocalEndpoint(randLength, currentNode.eulerAngles) : GetDirection(branchGrowthBias);*/
+
         currentNode.position = savedPos + GetLocalEndpoint(randLength, currentNode.eulerAngles);
-        //print($"New endpoint: <color=lime>{currentNode.position}</color>, angles: {currentNode.eulerAngles}");
+        /*currentNode.position = savedPos + GetLocalEndpoint(randLength, 
+            GetBiasedLocalRotation(currentNode.eulerAngles, biasedDir));*/
+
 
         segment.endPoint = currentNode;
         //print("Segment at level " + segment.branchLevel);
@@ -279,12 +328,12 @@ public class StructureGenerator : MonoBehaviour
             if (!branchCollision.didCollide) break;
             //print("<color=cyan>Reassigning branch angle...</color>");
 
-            Vector3 biasedDir = collisionBranchGrowthBias == GrowthBiasType.Branch ?
+            Vector3 biasedCollisionDir = collisionBranchGrowthBias == GrowthBiasType.Branch ?
                 GetLocalEndpoint(randLength, currentNode.eulerAngles) : GetDirection(collisionBranchGrowthBias);
 
             // Biased towards specific branch direction
             currentNode.position = savedPos + GetLocalEndpoint(randLength,
-                GetBiasedLocalRotation(currentNode.eulerAngles, biasedDir));
+                GetBiasedLocalRotation(currentNode.eulerAngles, biasedCollisionDir));
 
             segment.endPoint = currentNode;
         }
@@ -300,6 +349,9 @@ public class StructureGenerator : MonoBehaviour
         }
         else
         {
+            //print($"Segment at {segment.startPos}, id = <b>{segment.branchId}</b>");
+            if(!allSegments.ContainsKey(segment.branchId))
+                allSegments.Add(segment.branchId, segment);
             // Generate segment's voxels
             foreach (var pos in positions)
                 WorldManager.Instance.container[pos] = new Voxel()
@@ -534,13 +586,14 @@ public class StructureGenerator : MonoBehaviour
 
                             Vector3Int voxelPos = new Vector3Int(point.x + x, point.y + y, point.z + z);
 
-                            // If it's occupied and we are out of the grace zone it is a collision
+                            // If it's occupied and we are out of the grace zone it might be a collision
                             if (!insideGraceZone && WorldManager.Instance.container[voxelPos].id != 0)
                             {
                                 // If smaller branch collisions can be ignored
                                 if (allowedBranchCollisionLevel > 0)
                                 {
-                                    // If it is the smaller branches that collide with each other, ignore collision
+                                    // If the collided branches have a smaller level that is allowed to collide,
+                                    // ignore collision
                                     if (WorldManager.Instance.container[voxelPos].id-1 <= allowedBranchCollisionLevel
                                         && segment.thickness <= allowedBranchCollisionLevel)
                                     {
@@ -549,11 +602,20 @@ public class StructureGenerator : MonoBehaviour
                                     }
                                 }
 
+                                ushort collidedBranchId = WorldManager.Instance.container[voxelPos].branchId;
+
                                 // Ignore collisions with the parent branch
-                                if(segment.parentBranchId != WorldManager.Instance.container[voxelPos].branchId)
+                                if (segment.parentBranchId != collidedBranchId)
                                 {
+                                    // If the branches have the same parent and same-parent collision can be ignored
+                                    if (ignoreSameParentBranchCollision &&
+                                        segment.parentBranchId == allSegments[collidedBranchId].parentBranchId)
+                                    {
+                                        /*print($"Neighbor branch collision: <color=yellow>{segment.startPos} --> " +
+                                            $"{allSegments[collidedBranchId].startPos}</color>");*/
+                                    }
                                     // Make the small branches move away, big branches will ignore collisions with smaller
-                                    if (segment.thickness <= WorldManager.Instance.container[voxelPos].id - 1)
+                                    else if(segment.thickness <= WorldManager.Instance.container[voxelPos].id - 1)
                                     {
                                         collisionDetected = true;
                                         branchCollision.collisionsCount++;
@@ -588,7 +650,7 @@ public class StructureGenerator : MonoBehaviour
     }
 
 
-    private void GenerateLeaf(Vector3Int branchPointPos, Quaternion branchRot)
+    /*private void GenerateLeaf(Vector3Int branchPointPos, Quaternion branchRot)
     {
         //print("Placing leaf at " + branchPointPos);
 
@@ -610,12 +672,12 @@ public class StructureGenerator : MonoBehaviour
                 }
             }
 
-            /*leafLinesCopy[i] = leafLinesCopy[i] + branchPointPos - leafStart;
+            *//*leafLinesCopy[i] = leafLinesCopy[i] + branchPointPos - leafStart;
             // if it is an ending line point (index is odd)
             if (i%2 != 0)
             {
                 newLeafPositions.AddRange(GenerateLine(leafLinesCopy[i - 1], leafLinesCopy[i]));
-            }*/
+            }*//*
         }
 
 
@@ -636,44 +698,11 @@ public class StructureGenerator : MonoBehaviour
                 id = 1
             };
         }
-    }
-
-    static readonly Vector3[] angleDirections = new Vector3[7]
-    {
-        new Vector3(1, 0, 0),
-        new Vector3(0, 1, 0),
-        new Vector3(0, 0, 1),
-        new Vector3(1, 1, 0),
-        new Vector3(0, 1, 1),
-        new Vector3(1, 0, 1),
-        new Vector3(1, 1, 1),
-    };
-
-
-    // rounder leaf
-    /*static readonly Vector3Int[] leafLines = new Vector3Int[10]
-    {
-        new Vector3Int(0, 3, 0),
-        new Vector3Int(0, 7, 0),
-        new Vector3Int(1, 2, 0),
-        new Vector3Int(1, 8, 0),
-        new Vector3Int(2, 0, 0),
-        new Vector3Int(2, 9, 0),
-        new Vector3Int(3, 2, 0),
-        new Vector3Int(3, 8, 0),
-        new Vector3Int(4, 3, 0),
-        new Vector3Int(4, 7, 0),
-    };*/
-
-    /*static readonly Vector3Int[] leafLines = new Vector3Int[2]
-    {
-        new Vector3Int(0, 0, 0),
-        new Vector3Int(0, 6, 0)
-    };*/
+    }*/
 
 }
 
-public static class VoxelRotator
+/*public static class VoxelRotator
 {
     public static Vector3Int[] RotateLeaves(Vector3Int[] voxels, Vector3 pivot, Quaternion branchRotation, Quaternion extraRotation)
     {
@@ -705,4 +734,4 @@ public static class VoxelRotator
 
         return rotatedVoxels;
     }
-}
+}*/

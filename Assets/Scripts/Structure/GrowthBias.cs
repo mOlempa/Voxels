@@ -21,9 +21,9 @@ public static class GrowthBias
             case GrowthBiasType.None:
                 return Vector3.zero;
             case GrowthBiasType.Up:
-                return Vector3.forward;
+                return Vector3.up;
             case GrowthBiasType.Down:
-                return Vector3.back;
+                return Vector3.down;
         }
     }
 }
