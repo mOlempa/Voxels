@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -40,6 +41,7 @@ public class ObstacleGenerator : MonoBehaviour
             WorldManager.Instance.container[pos] = new Voxel()
             {
                 id = 100,
+                objectId = 0,    // obstacles are counted together as one object
             };
         }
     }

@@ -9,6 +9,7 @@ using static Utilities;
 using static LeavesManager;
 using static GrowthBias;
 using System.Text;
+using System;
 
 
 public class StructureGenerator : MonoBehaviour
@@ -46,8 +47,12 @@ public class StructureGenerator : MonoBehaviour
     public float collisionBiasStrength = 1;
 
     public ushort assignableBranchId = 0;
+    public byte assignableObjectId = 0;
+    
 
     private Dictionary<ushort, Segment> allSegments = new Dictionary<ushort, Segment>();
+
+    [HideInInspector] public TimeManager timeManager = new TimeManager();
 
     private void Awake()
     {
@@ -90,6 +95,11 @@ public class StructureGenerator : MonoBehaviour
         result.AppendLine($"branchTrialTimes: {branchTrialTimes}");
         result.AppendLine($"collisionAngleOffset: {collisionAngleOffset}");
         result.AppendLine($"collisionBiasStrength: {collisionBiasStrength}");
+        result.AppendLine();
+        result.AppendLine($"--Timers--");
+        result.AppendLine($"Generation time: {timeManager.GetGenTime()}");
+        result.AppendLine($"Avg collision detection time: {timeManager.GetColTimeAvg()}");
+
 
         return result.ToString();
 
@@ -101,8 +111,8 @@ public class StructureGenerator : MonoBehaviour
         Quaternion prevGlobalRot = Quaternion.Euler(prevGlobalEuler);
 
         // ONLY USED WHEN COLLISION DETECTED
-        float randomXAngle = Random.Range(-collisionAngleOffset, collisionAngleOffset);
-        float randomYAngle = Random.Range(-collisionAngleOffset, collisionAngleOffset);
+        float randomXAngle = UnityEngine.Random.Range(-collisionAngleOffset, collisionAngleOffset);
+        float randomYAngle = UnityEngine.Random.Range(-collisionAngleOffset, collisionAngleOffset);
         Quaternion randomLocalRot = Quaternion.Euler(randomXAngle, randomYAngle, 0f);
 
         Quaternion unbiasedGlobalRot;
@@ -136,6 +146,9 @@ public class StructureGenerator : MonoBehaviour
             }
         }
         List<Segment> segments = new List<Segment>();
+        assignableObjectId = WorldManager.Instance.assignableObjectIdList.Last();
+
+        timeManager.StartGenTimer();
 
         //printDebug($"<color=#{WorldManager.Instance.worldColors[0].color.ToHexString().TrimEnd("00")}>{WorldManager.Instance.worldColors[0].color.ToHexString()}</color>");
 
@@ -288,6 +301,12 @@ public class StructureGenerator : MonoBehaviour
             }
         }
 
+        timeManager.StopGenTimer();
+
+        Debug.Log("Generation time: " + timeManager.GetGenTime());
+        Debug.Log("Average collision time: " + timeManager.GetColTimeAvg());
+
+
         return segments;
     }
     
@@ -318,6 +337,8 @@ public class StructureGenerator : MonoBehaviour
         segment.endPoint = currentNode;
         //print("Segment at level " + segment.branchLevel);
 
+        timeManager.StartColTimer();
+
         // Generate voxels
         List<Vector3Int> positions = new List<Vector3Int>();
         for (int i = 0; i < branchTrialTimes; i++)
@@ -326,7 +347,7 @@ public class StructureGenerator : MonoBehaviour
             positions = GenerateThickLine(segment);
             // If no collision detected, proceed with the branch
             if (!branchCollision.didCollide) break;
-            //print("<color=cyan>Reassigning branch angle...</color>");
+            print("<color=cyan>Reassigning branch angle...</color>");
 
             Vector3 biasedCollisionDir = collisionBranchGrowthBias == GrowthBiasType.Branch ?
                 GetLocalEndpoint(randLength, currentNode.eulerAngles) : GetDirection(collisionBranchGrowthBias);
@@ -337,8 +358,8 @@ public class StructureGenerator : MonoBehaviour
 
             segment.endPoint = currentNode;
         }
-        //List<Vector3Int> positions = GenerateThickLine(segment);
 
+        timeManager.StopColTimer();
 
         if (branchCollision.didCollide)
         {
@@ -359,144 +380,12 @@ public class StructureGenerator : MonoBehaviour
                     //id = 1
                     id = WorldManager.Instance.worldColors.Length > segment.thickness ? (byte)(segment.thickness+1) : (byte)2,
                     branchId = segment.branchId,
+                    objectId = assignableObjectId,
                 };
             //segments.Add(segment);
         }
     }
-
-    /*public List<Segment> ConvertSentenceToSegmentsOriginal(List<Symbol> sentence)
-    {
-        if (grammar == null)
-        {
-            Debug.LogError("No grammar referenced in Structure Generator!!");
-            return new List<Segment>();
-        }
-        List<Segment> segments = new List<Segment>();
-        //printDebug($"<color=#{WorldManager.Instance.worldColors[0].color.ToHexString().TrimEnd("00")}>{WorldManager.Instance.worldColors[0].color.ToHexString()}</color>");
-
-        List<Vector3Int> positions = new List<Vector3Int>
-        {
-            // starting position
-            new Vector3Int(0, 0, 0)
-        };
-        Stack<LNode> stack = new Stack<LNode>();
-        stack.Push(new LNode() { position = positions[0], anglesDeg = startingAngles, thickness = maxThickness, branchLevel = 0 });
-        string final = $"";
-        //final += $"<color=#{WorldManager.Instance.worldColors[maxThickness].color.ToHexString().TrimEnd("00")}>";
-
-        //int branchLevel = 0; // main trunk
-
-        foreach (var symbol in sentence)
-        {
-            LNode currentNode;
-            int randAngle = UnityEngine.Random.Range(minAngle, maxAngle);
-            int randLength;
-            //int randAngle = 30;
-            switch (grammar.GetSymbolAction(symbol))
-            {
-                case Action.PlaceLine:
-                    printDebug($"Symbol {symbol.name}, placing line");
-                    final += symbol.name;
-                    currentNode = stack.Pop();
-
-                    randLength = UnityEngine.Random.Range(minLength, maxLength);
-
-                    InterpretLineParams(symbol, ref randLength, ref currentNode.thickness);     // does thickness here get changed?
-
-                    Segment segment = new Segment()
-                    {
-                        startPoint = currentNode,
-                        thickness = currentNode.thickness,
-                        branchLevel = currentNode.branchLevel
-                    };
-
-                    currentNode.position = currentNode.position + GetLocalEndpoint(randLength, currentNode.anglesDeg);
-
-                    segment.endPoint = currentNode;
-                    segment.length = randLength;
-                    segments.Add(segment);
-
-                    positions.Add(currentNode.position);
-
-                    currentNode.branchLevel++;
-                    stack.Push(currentNode);
-                    break;
-
-                case Action.RotateRight:
-                    printDebug($"Symbol {symbol.name}, rotating right");
-
-                    InterpretRotationalParams(symbol, ref randAngle);
-
-                    final += symbol.name;
-                    currentNode = stack.Pop();
-                    currentNode.anglesDeg.x += randAngle;
-                    stack.Push(currentNode);
-                    break;
-
-                case Action.RotateLeft:
-                    printDebug($"Symbol {symbol.name}, rotating left");
-
-                    InterpretRotationalParams(symbol, ref randAngle);
-
-                    final += symbol.name;
-                    currentNode = stack.Pop();
-                    currentNode.anglesDeg.x -= randAngle;
-                    stack.Push(currentNode);
-                    break;
-
-                case Action.RotateForward:
-                    printDebug($"Symbol {symbol.name}, rotating forward");
-
-                    final += symbol.name;
-                    currentNode = stack.Pop();
-                    currentNode.anglesDeg.y += randAngle;
-                    stack.Push(currentNode);
-                    break;
-
-                case Action.RotateBackward:
-                    printDebug($"Symbol {symbol.name}, rotating backward");
-
-                    final += symbol.name;
-                    currentNode = stack.Pop();
-                    currentNode.anglesDeg.y -= randAngle;
-                    stack.Push(currentNode);
-                    break;
-
-                case Action.StartBranch:
-                    printDebug($"Symbol {symbol.name}, starting branch");
-                    //currentThickness = currentThickness > 1 ? currentThickness - 1 : 1;
-                    final += $"</color>";
-                    //final += $"<color=#{WorldManager.Instance.worldColors[stack.Peek().thickness > 1 ? stack.Peek().thickness - 1 : 1].color.ToHexString().TrimEnd("00")}>";
-                    final += symbol.name;
-                    stack.Push(new LNode()
-                    {
-                        position = stack.Peek().position,
-                        anglesDeg = stack.Peek().anglesDeg,
-                        thickness = stack.Peek().thickness > 1 ? stack.Peek().thickness - 1 : 1,
-                        branchLevel = stack.Peek().branchLevel + 1,
-                    });
-                    break;
-
-                case Action.EndBranch:
-                    printDebug($"Symbol {symbol.name}, ending branch");
-                    //currentThickness = currentThickness < maxThickness ? currentThickness + 1 : maxThickness;
-                    final += symbol.name;
-                    final += $"</color>";
-                    //final += $"<color=#{WorldManager.Instance.worldColors[stack.Peek().thickness].color.ToHexString().TrimEnd("00")}>";
-
-                    stack.Pop();
-
-                    break;
-
-                default:
-                    break;
-            }
-        }
-        final += $"</color>";
-        printDebug(final);
-
-        return segments;
-    }*/
+    
 
     private void InterpretRotationalParams(Symbol symbol, ref int angle)
     {
@@ -509,12 +398,12 @@ public class StructureGenerator : MonoBehaviour
                     default:
                     case 0:
                         // angle = Random.Range((int)symbol.parameters[0] - 5, (int)symbol.parameters[0] + 5);
-                        angle = Random.Range((int)symbol.parameters[0], (int)symbol.parameters[0]);
+                        angle = UnityEngine.Random.Range((int)symbol.parameters[0], (int)symbol.parameters[0]);
 
                         break;
                     case 1:
                         // Get a random between two angles if there are two values
-                        angle = Random.Range((int)symbol.parameters[0], (int)symbol.parameters[1]);
+                        angle = UnityEngine.Random.Range((int)symbol.parameters[0], (int)symbol.parameters[1]);
                         break;
                 }
             }
@@ -556,13 +445,7 @@ public class StructureGenerator : MonoBehaviour
         int radius = segment.thickness;
         int radiusSquared = radius * radius;
 
-        // The branch must clear its own thickness before it cares about collisions
         int graceDistanceSquared = (radius *3) * (radius*3);
-
-        // Make grace zone based on the size of the parent branch thickness
-        //int graceDistanceSquared = segment.parentThickness * segment.parentThickness * 2;
-        //print($"graceDistanceSquared = {graceDistanceSquared}");
-        //print($"<color=lime>New line {A} --> {B}</color>");
 
         // Applying a spherical brush around every point
         foreach (Vector3Int point in thinLine)
@@ -589,6 +472,19 @@ public class StructureGenerator : MonoBehaviour
                             // If it's occupied and we are out of the grace zone it might be a collision
                             if (!insideGraceZone && WorldManager.Instance.container[voxelPos].id != 0)
                             {
+                                print($"Object id = {assignableObjectId},  " +
+                                    $"collided object id = {WorldManager.Instance.container[voxelPos].objectId}");
+                                print("Position: " + voxelPos);
+                                // If it is a completely different object (other plant or obstacle)
+                                if (WorldManager.Instance.container[voxelPos].objectId != assignableObjectId)
+                                {
+                                    collisionDetected = true;
+                                    branchCollision.collisionsCount++;
+                                    branchCollision.didCollide = true;
+                                    break;
+                                }
+                                //print("assignableObjectId = " + assignableObjectId);
+
                                 // If smaller branch collisions can be ignored
                                 if (allowedBranchCollisionLevel > 0)
                                 {
@@ -603,14 +499,16 @@ public class StructureGenerator : MonoBehaviour
                                 }
 
                                 ushort collidedBranchId = WorldManager.Instance.container[voxelPos].branchId;
+                                //print("collidedBranchId = " + collidedBranchId);
 
-                                // Ignore collisions with the parent branch
+                                // If collided with a branch other than parent branch
                                 if (segment.parentBranchId != collidedBranchId)
                                 {
                                     // If the branches have the same parent and same-parent collision can be ignored
                                     if (ignoreSameParentBranchCollision &&
                                         segment.parentBranchId == allSegments[collidedBranchId].parentBranchId)
                                     {
+                                        print("Ignoring neighbour branch collision");
                                         /*print($"Neighbor branch collision: <color=yellow>{segment.startPos} --> " +
                                             $"{allSegments[collidedBranchId].startPos}</color>");*/
                                     }
@@ -649,89 +547,4 @@ public class StructureGenerator : MonoBehaviour
         return thickLine.ToList();
     }
 
-
-    /*private void GenerateLeaf(Vector3Int branchPointPos, Quaternion branchRot)
-    {
-        //print("Placing leaf at " + branchPointPos);
-
-        Vector3Int leafStart = leafShape.leafPoints.FirstOrDefault(x => x.y == 0); // find the leaf tail starting position
-
-        Vector3Int[] leafLinesCopy = leafShape.leafPoints;
-        List<Vector3Int> newLeafPositions = new List<Vector3Int>();
-
-        for (int i = 0; i < leafShape.leafPoints.Length; i++)
-        {
-            if (i % 2 != 0)
-            {
-                //print($"int y = {leafLines[i].y}; y <= {leafLines[i - 1].y}; y++");
-                for (int y = leafShape.leafPoints[i-1].y; y <= leafShape.leafPoints[i].y; y++)
-                {
-                    Vector3Int vec = new Vector3Int(leafShape.leafPoints[i].x, y, leafShape.leafPoints[i].z);
-                    newLeafPositions.Add(vec);
-                    //print("Adding position " + vec);
-                }
-            }
-
-            *//*leafLinesCopy[i] = leafLinesCopy[i] + branchPointPos - leafStart;
-            // if it is an ending line point (index is odd)
-            if (i%2 != 0)
-            {
-                newLeafPositions.AddRange(GenerateLine(leafLinesCopy[i - 1], leafLinesCopy[i]));
-            }*//*
-        }
-
-
-        Vector3Int[] originalLeaves = newLeafPositions.ToArray();
-        //Vector3 connectionPoint = new Vector3(1, 0, 0); // Where the leaves attach to the branch
-
-        // The additional tilt for the leaves to have
-        Quaternion leafTilt = Quaternion.Euler(30f, 0f, 0f);
-
-        // Process the array
-        newLeafPositions = VoxelRotator.RotateLeaves(originalLeaves, leafStart, branchRot, leafTilt).ToList();
-
-
-        foreach (var pos in newLeafPositions)
-        {
-            WorldManager.Instance.container[pos + branchPointPos] = new Voxel()
-            {
-                id = 1
-            };
-        }
-    }*/
-
 }
-
-/*public static class VoxelRotator
-{
-    public static Vector3Int[] RotateLeaves(Vector3Int[] voxels, Vector3 pivot, Quaternion branchRotation, Quaternion extraRotation)
-    {
-        Quaternion finalRotation = branchRotation * extraRotation;
-
-        Vector3Int[] rotatedVoxels = new Vector3Int[voxels.Length];
-
-        for (int i = 0; i < voxels.Length; i++)
-        {
-            // Convert to float-based Vector3
-            Vector3 pos = voxels[i];
-
-            // Find the position relative to the pivot
-            Vector3 dirFromPivot = pos - pivot;
-
-            // Rotate the relative position
-            Vector3 rotatedDir = finalRotation * dirFromPivot;
-
-            // Add the pivot back to get the final world/local position
-            Vector3 finalPos = pivot + rotatedDir;
-
-            // Snap back to the voxel grid
-            rotatedVoxels[i] = new Vector3Int(
-                Mathf.RoundToInt(finalPos.x),
-                Mathf.RoundToInt(finalPos.y),
-                Mathf.RoundToInt(finalPos.z)
-            );
-        }
-
-        return rotatedVoxels;
-    }
-}*/

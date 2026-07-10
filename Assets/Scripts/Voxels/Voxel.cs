@@ -6,6 +6,7 @@ public class Voxel
 {
     public byte id;
     public ushort branchId;
+    public byte objectId;
     public bool isSolid
     {
         get

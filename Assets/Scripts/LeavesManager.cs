@@ -50,7 +50,8 @@ public static class LeavesManager
         {
             WorldManager.Instance.container[pos + branchPointPos] = new Voxel()
             {
-                id = 1
+                id = 1,
+                objectId = WorldManager.Instance.assignableObjectIdList.Last()
             };
         }
     }

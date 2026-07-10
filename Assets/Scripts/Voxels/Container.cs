@@ -18,7 +18,7 @@ public partial class Container : MonoBehaviour
     public Dictionary<Vector3, Voxel> data;
     public MeshData meshData = new MeshData();
 
-    public ComputeShader shader;
+    //public ComputeShader shader;
 
 
     public void Initialize(Material mat, Vector3 pos)

@@ -62,6 +62,8 @@ public class SpaceColonizer : MonoBehaviour
     [SerializeField] LeafShape leafShape;
     public int recursionLevel = 3;
 
+    private BranchCollisionHelper branchCollision = new BranchCollisionHelper();
+
 
     HashSet<SCNode> nodes = new HashSet<SCNode>();
     //HashSet<Vector3Int> attractors = new HashSet<Vector3Int>();
@@ -77,6 +79,9 @@ public class SpaceColonizer : MonoBehaviour
     byte branchVoxelID = 2;
 
     ushort assignableBranchId = 0;
+    public byte assignableObjectId = 0;
+
+    [HideInInspector] TimeManager timeManager = new TimeManager();
 
     public void Colonize(Vector3Int startingPoint)
     {
@@ -87,10 +92,13 @@ public class SpaceColonizer : MonoBehaviour
             return;
         };
 
+        timeManager.StartGenTimer();
+
         attractorManager.GenerateAttractors();
         attractorManager.ShowAttractors();
 
         //return;
+        assignableObjectId = WorldManager.Instance.assignableObjectIdList.Last();
 
         List<SCNode> branchStartingNodes = trunk.GenerateTrunk(startingPoint);
 
@@ -133,6 +141,8 @@ public class SpaceColonizer : MonoBehaviour
 
         GrowLeaves();
 
+        timeManager.StopGenTimer();
+
     }
 
     public string GetDataString()
@@ -170,6 +180,10 @@ public class SpaceColonizer : MonoBehaviour
         result.AppendLine();
         result.AppendLine($"--Leaves--");
         result.AppendLine($"leafShape: {leafShape.name}");
+        result.AppendLine();
+        result.AppendLine($"--Timers--");
+        result.AppendLine($"Generation time: {timeManager.GetGenTime()}");
+        result.AppendLine($"Avg collision detection time: {timeManager.GetColTimeAvg()}");
 
         return result.ToString();
     }
@@ -490,12 +504,14 @@ public class SpaceColonizer : MonoBehaviour
 
         //Vector3 savedDir = endNode.direction;
 
+        timeManager.StartColTimer();
+
         for (int i = 0; i < branchTrialTimes; i++)
         {
-            WorldManager.Instance.branchCollision.didCollide = false;
+            branchCollision.didCollide = false;
             voxelPositions = GenerateThickLine(startNode, endNode, startNode.thickness);
             // If no collision detected, proceed with the branch
-            if (!WorldManager.Instance.branchCollision.didCollide) break;
+            if (!branchCollision.didCollide) break;
             //print("<color=cyan>Reassigning branch angle...</color>");
 
             Vector3 randomOffset = Random.insideUnitSphere;
@@ -515,9 +531,11 @@ public class SpaceColonizer : MonoBehaviour
             endNode.direction = biasedDirectionVec;
         }
 
-        if (WorldManager.Instance.branchCollision.didCollide)
+        timeManager.StopColTimer();
+
+        if (branchCollision.didCollide)
         {
-            Debug.Log($"Collision at <color=red>{startNode.position}</color>!");
+            //Debug.Log($"Collision at <color=red>{startNode.position}</color>!");
             newNodes.Add(startNode);
             //Debug.Log($"Branch stays at {startNode.position}");
         }
@@ -549,7 +567,8 @@ public class SpaceColonizer : MonoBehaviour
             WorldManager.Instance.container[pos] = new Voxel()
             {
                 id = branchVoxelID,
-                branchId = branchId
+                branchId = branchId,
+                objectId = assignableObjectId
             };
         }
     }
@@ -569,16 +588,11 @@ public class SpaceColonizer : MonoBehaviour
         int radius = thickness;
         int radiusSquared = radius * radius;
 
-        // The branch must clear its own thickness before it cares about collisions
-        int graceDistanceSquared = (radius * 3) * (radius * 3);
-
         // Applying a spherical brush around every point
         foreach (Vector3Int point in thinLine)
         {
             bool collisionDetected = false;
             List<Vector3Int> currentSpherePoints = new List<Vector3Int>();
-            // Calculate distance from start point A to handle the grace zone
-            bool insideGraceZone = (point - startNode.position).sqrMagnitude <= graceDistanceSquared;
 
             for (int x = -radius; x <= radius; x++)
             {
@@ -595,14 +609,20 @@ public class SpaceColonizer : MonoBehaviour
                             Vector3Int voxelPos = new Vector3Int(point.x + x, point.y + y, point.z + z);
 
                             // If it's occupied and we are out of the grace zone it is a collision
-                            if (!insideGraceZone && WorldManager.Instance.container[voxelPos].id != 0)
+                            if (WorldManager.Instance.container[voxelPos].id != 0)
                             {
+                                // If it is a completely different object (other plant or obstacle)
+                                if (WorldManager.Instance.container[voxelPos].objectId != assignableObjectId)
+                                {
+                                    collisionDetected = true;
+                                    branchCollision.collisionsCount++;
+                                    branchCollision.didCollide = true;
+                                    break;
+                                }
+
                                 // If smaller branch collisions can be ignored
                                 if (allowedBranchCollisionLevel > 0)
                                 {
-                                   /* Debug.Log($"WorldManager.Instance.container[voxelPos].id - 1: " +
-                                        $"{WorldManager.Instance.container[voxelPos].id - 1}, " +
-                                        $"allowedBranchCollisionLevel: {allowedBranchCollisionLevel}");*/
                                     // If it is the smaller branches that collide with each other, ignore collision
                                     if (WorldManager.Instance.container[voxelPos].id - 1 <= allowedBranchCollisionLevel
                                         && thickness <= allowedBranchCollisionLevel)
@@ -624,11 +644,11 @@ public class SpaceColonizer : MonoBehaviour
                                     // Make the small branches move away, big branches will ignore collisions with smaller
                                     else */if (thickness <= WorldManager.Instance.container[voxelPos].id - 1)
                                     {
-                                        Debug.Log($"-> Collision of branch - thickness: {thickness}, " +
-                                            $"branchId: {startNode.branchId}, parentBranchId: {startNode.parentBranchId}");
+                                        /*Debug.Log($"-> Collision of branch - thickness: {thickness}, " +
+                                            $"branchId: {startNode.branchId}, parentBranchId: {startNode.parentBranchId}");*/
                                         collisionDetected = true;
-                                        WorldManager.Instance.branchCollision.collisionsCount++;
-                                        WorldManager.Instance.branchCollision.didCollide = true;
+                                        branchCollision.collisionsCount++;
+                                        branchCollision.didCollide = true;
                                         break;
                                     }
                                 }

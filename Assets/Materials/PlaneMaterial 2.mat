@@ -7,8 +7,8 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: FernMaterial
-  m_Shader: {fileID: -6465566751694194690, guid: 7e05bb8778cc7f84293b8d3dc5c58e60, type: 3}
+  m_Name: PlaneMaterial 2
+  m_Shader: {fileID: -6465566751694194690, guid: 756d97b6dca355042beb9d9b7d6d62d3, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -23,10 +23,6 @@ Material:
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
-    - _AdditionalTexture:
-        m_Texture: {fileID: 2800000, guid: c6bc8775c311ef3459d199f51042dccf, type: 3}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
     - _Albedo:
         m_Texture: {fileID: 2800000, guid: bfd707da397b89549886a6574f2ef2b6, type: 3}
         m_Scale: {x: 1, y: 1}
@@ -52,7 +48,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _LeafTexture:
-        m_Texture: {fileID: 2800000, guid: e049a1ddb33f47e46acf3ef4866ce3a9, type: 3}
+        m_Texture: {fileID: 2800000, guid: 029924f72af93be4f8e7741495fa2a73, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
@@ -60,7 +56,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTexture:
-        m_Texture: {fileID: 2800000, guid: e049a1ddb33f47e46acf3ef4866ce3a9, type: 3}
+        m_Texture: {fileID: 2800000, guid: c20b1c0999a2dcf48980d00a56c8a9ed, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MetallicGlossMap:
@@ -114,7 +110,7 @@ Material:
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1
-    - _Tiling: 0.25
+    - _Tiling: 0.01
     - _UVSec: 0
     - _ZWrite: 1
     - _isleaf: 0

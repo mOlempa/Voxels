@@ -79,6 +79,8 @@ MonoBehaviour:
     userSuccessors:
       _serializedList:
       - Key: F(v)C(v-1)
+        Value: 0
+      - Key: C(v)
         Value: 1
   - predecessor: A(v)
     userContext: 
