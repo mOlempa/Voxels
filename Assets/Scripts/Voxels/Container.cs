@@ -13,12 +13,9 @@ public partial class Container : MonoBehaviour
     public Vector3 position;
     public MeshFilter meshFilter;
     public MeshRenderer meshRenderer;
-    //public MeshCollider meshCollider;
 
     public Dictionary<Vector3, Voxel> data;
     public MeshData meshData = new MeshData();
-
-    //public ComputeShader shader;
 
 
     public void Initialize(Material mat, Vector3 pos)
@@ -34,7 +31,6 @@ public partial class Container : MonoBehaviour
     {
         meshFilter = GetComponent<MeshFilter>();
         meshRenderer = GetComponent<MeshRenderer>();
-        //meshCollider = GetComponent<MeshCollider>();
     }
 
     public void ClearData()
@@ -75,14 +71,13 @@ public partial class Container : MonoBehaviour
             colorAlpha.a = 1;
             smoothness = new Vector2(voxelColor.metallic, voxelColor.smoothness);
 
-            for (int i = 0; i < 6; i++)  // iterating over each face direction
+            for (int i = 0; i < 6; i++)  // Iterating over each face direction
             {
-                // if the face is neighboring to another solid block, skip rendering it
+                // If the face is neighboring to another solid block, skip rendering it
                 if (this[blockPos + voxelFaceChecks[i]].isSolid) continue;
 
-                // drawing the face
 
-                // collecting the appropriate vertices from the default vertices and adding the voxel pos
+                // Collecting the appropriate vertices from the default vertices and adding the voxel pos
                 for (int j = 0; j < 4; j++)
                 {
                     faceVertices[j] = voxelVertices[voxelVertexIndex[i, j]] + blockPos;
@@ -112,10 +107,6 @@ public partial class Container : MonoBehaviour
         }
 
         meshFilter.mesh = meshData.mesh;
-        /*if(meshData.vertices.Count > 3)
-        {
-            meshCollider.sharedMesh = meshData.mesh;
-        }*/
 
     }
 

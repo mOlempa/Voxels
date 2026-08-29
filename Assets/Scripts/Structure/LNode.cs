@@ -19,6 +19,7 @@ public struct LNode
     public Quaternion rotation;
     public Quaternion localRotation;
 
+    // TODO: Simplify - put ApplyLocalRotation and ResetLocalRotation inside of here
     public void Rotate(Vector3 eulers, [DefaultValue("Space.Self")] Space relativeTo)
     {
         Quaternion quaternion = Quaternion.Euler(eulers.x, eulers.y, eulers.z);

@@ -1,66 +1,86 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using UnityEngine;
 
 public class TimeManager
 {
-    DateTime genStart;
-    DateTime genEnd;
+    Stopwatch genTimer = new Stopwatch();
 
-    DateTime colStart;
-    double colTimeSum;
+    //DateTime colDetStart;
+    double colDetTimeSum = 0;
+    int segmentCount = 0;
     int colCount = 0;
 
     //Dictionary<int, (DateTime start, DateTime end)> timers = new Dictionary<int, (DateTime, DateTime)>();
 
-    DateTime additionalStart;
-    DateTime additionalEnd;
+    Stopwatch additionalTimer = new Stopwatch();
+
+    Stopwatch stopwatch = new Stopwatch();
 
     public void StartGenTimer()
     {
-        genStart = DateTime.Now;
+        genTimer.Start();
     }
 
     public void StopGenTimer()
     {
-        genEnd = DateTime.Now;
+        genTimer.Stop();
     }
 
     public double GetGenTime()
     {
-        return (genEnd - genStart).TotalMilliseconds;
+        return Math.Round(genTimer.Elapsed.TotalMilliseconds, 3);
     }
 
     public void StartColTimer()
     {
-        colStart = DateTime.Now;
-        colCount++;
+        //colDetStart = DateTime.Now;
+        stopwatch = Stopwatch.StartNew();
+        stopwatch.Start();
+        segmentCount++;
+        //UnityEngine.Debug.Log($"Timer start");
     }
 
     public void StopColTimer()
     {
-        colTimeSum += (DateTime.Now - colStart).TotalMilliseconds;
+        stopwatch.Stop();
+        //colDetTimeSum += (DateTime.Now - colDetStart).TotalMilliseconds;
+        colDetTimeSum += stopwatch.Elapsed.TotalMilliseconds;
+        //UnityEngine.Debug.Log($"Timer end: <color=yellow>{stopwatch.Elapsed.TotalMilliseconds}</color>");
+        //Debug.Log($"Timer end: <color=yellow>{(DateTime.Now - colDetStart).TotalMilliseconds}</color>   ({DateTime.Now.Millisecond * 1000})");
     }
 
-    public double GetColTimeAvg()
+    public double GetCollisionDetTimeAvg()
     {
-        return colTimeSum/colCount;
+        return Math.Round(colDetTimeSum /segmentCount, 3);
     }
 
     public void StartAdditionalTimer()
     {
-        additionalStart = DateTime.Now;
+        additionalTimer.Start();
     }
 
     public void StopAdditionalTimer()
     {
-        additionalEnd = DateTime.Now;
+        additionalTimer.Stop();
     }
 
     public double GetAdditionalTime()
     {
-        return (additionalEnd- additionalStart).TotalMilliseconds;
+        return Math.Round(additionalTimer.Elapsed.TotalMilliseconds, 3);
+    }
+
+    public void AddColCount()
+    {
+        colCount += 1;
+        //UnityEngine.Debug.Log("<color=red>Collision!</color>");
+    }
+
+    public double GetColCount()
+    {
+        return colCount;
     }
 
 

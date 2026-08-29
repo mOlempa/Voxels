@@ -6,10 +6,16 @@ using UnityEngine;
 public class ObstacleGenerator : MonoBehaviour
 {
     [SerializeField]
-    Collider[] obstacleColliders;
+    GameObject obstaclesParent;
+
+    [HideInInspector] public Collider[] obstacleColliders;
+
+    [HideInInspector] public int voxelCount = 0;
 
     public void GenerateObstacle()
     {
+        obstacleColliders = obstaclesParent.GetComponentsInChildren<Collider>();
+
         if (obstacleColliders == null) return;
         foreach(Collider collider in obstacleColliders) 
         { 
@@ -30,12 +36,13 @@ public class ObstacleGenerator : MonoBehaviour
                 }
             }
             GenerateVoxels(positions);
-
+            collider.gameObject.SetActive(false);
         }
     }
 
     void GenerateVoxels(List<Vector3Int> positions)
     {
+        voxelCount = positions.Count;
         foreach (var pos in positions)
         {
             WorldManager.Instance.container[pos] = new Voxel()

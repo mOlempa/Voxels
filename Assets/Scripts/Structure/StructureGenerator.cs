@@ -19,7 +19,6 @@ public class StructureGenerator : MonoBehaviour
     [SerializeField] public LeafShape leafShape;
     private Grammar grammar;
     public bool enablePrintDebug = false;
-    public bool ignoreSameParentBranchCollision = true;
 
     public int maxLength = 5;
     public int minLength = 3;
@@ -27,14 +26,16 @@ public class StructureGenerator : MonoBehaviour
     public int minAngle = 15;
     public int maxThickness = 5;
     public Vector3 startingAngles = new Vector3(0, 0, 0);
-    [Header("Growth Bias")]
+    /*[Header("Growth Bias")]
     public GrowthBiasType branchGrowthBias = GrowthBiasType.None;
     [Range(0f, 1f)]
-    public float biasStrength = 1;
+    public float biasStrength = 1;*/
 
     private BranchCollisionHelper branchCollision = new BranchCollisionHelper();
 
     [Header("Branch Collision Handling")]
+    public bool ignoreSameParentBranchCollision = true;
+    public bool useGraceZone = true;
     [Range(0, 10)]
     public int allowedBranchCollisionLevel = 1;
     public GrowthBiasType collisionBranchGrowthBias = GrowthBiasType.None;
@@ -68,6 +69,15 @@ public class StructureGenerator : MonoBehaviour
         }
     }
 
+    public void Generate()
+    {
+        timeManager.StartAdditionalTimer();
+        List<Symbol> sentence = lSystemGenerator.GenerateSentence();
+        timeManager.StopAdditionalTimer();
+
+        ConvertSentenceToSegments(sentence);
+    }
+
     public string GetDataString()
     {
         StringBuilder result = new StringBuilder();
@@ -85,10 +95,11 @@ public class StructureGenerator : MonoBehaviour
         result.AppendLine($"minAngle: {minAngle}");
         result.AppendLine($"maxThickness: {maxThickness}");
         result.AppendLine($"startingAngles: {startingAngles}");
-        result.AppendLine($"branchGrowthBias: {branchGrowthBias}");
-        result.AppendLine($"biasStrength: {biasStrength}");
+        //result.AppendLine($"branchGrowthBias: {branchGrowthBias}");
+        //result.AppendLine($"biasStrength: {biasStrength}");
         result.AppendLine();
         result.AppendLine($"--Collision--");
+        result.AppendLine($"useGraceZone: {useGraceZone}");
         result.AppendLine($"ignoreSameParentBranchCollision: {ignoreSameParentBranchCollision}");
         result.AppendLine($"allowedBranchCollisionLevel: {allowedBranchCollisionLevel}");
         result.AppendLine($"collisionBranchGrowthBias: {collisionBranchGrowthBias}");
@@ -96,10 +107,23 @@ public class StructureGenerator : MonoBehaviour
         result.AppendLine($"collisionAngleOffset: {collisionAngleOffset}");
         result.AppendLine($"collisionBiasStrength: {collisionBiasStrength}");
         result.AppendLine();
-        result.AppendLine($"--Timers--");
-        result.AppendLine($"Generation time: {timeManager.GetGenTime()}");
-        result.AppendLine($"Avg collision detection time: {timeManager.GetColTimeAvg()}");
+        result.AppendLine($"--Statistics--");
+        result.AppendLine($"Sentence generation time: {timeManager.GetAdditionalTime()}");
+        result.AppendLine($"Plant generation time: {timeManager.GetGenTime()}");
+        result.AppendLine($"Avg collision detection time: {timeManager.GetCollisionDetTimeAvg()}");
 
+        return result.ToString();
+
+    }
+
+    public string GetStatistics()
+    {
+        StringBuilder result = new StringBuilder();
+        result.Append($"{timeManager.GetAdditionalTime()}|");
+        result.Append($"{timeManager.GetGenTime()}|");
+        result.Append($"{timeManager.GetCollisionDetTimeAvg()}|");
+        result.Append($"{timeManager.GetColCount()}|");
+        result.Append($"{allSegments.Count + 1}");
 
         return result.ToString();
 
@@ -134,7 +158,7 @@ public class StructureGenerator : MonoBehaviour
 
     }
 
-    public List<Segment> ConvertSentenceToSegments(List<Symbol> sentence)
+    List<Segment> ConvertSentenceToSegments(List<Symbol> sentence)
     {
         if (grammar == null)
         {
@@ -304,7 +328,7 @@ public class StructureGenerator : MonoBehaviour
         timeManager.StopGenTimer();
 
         Debug.Log("Generation time: " + timeManager.GetGenTime());
-        Debug.Log("Average collision time: " + timeManager.GetColTimeAvg());
+        Debug.Log("Average collision time: " + timeManager.GetCollisionDetTimeAvg());
 
 
         return segments;
@@ -347,7 +371,9 @@ public class StructureGenerator : MonoBehaviour
             positions = GenerateThickLine(segment);
             // If no collision detected, proceed with the branch
             if (!branchCollision.didCollide) break;
-            print("<color=cyan>Reassigning branch angle...</color>");
+            //print("<color=cyan>Reassigning branch angle...</color>");
+
+            timeManager.AddColCount();
 
             Vector3 biasedCollisionDir = collisionBranchGrowthBias == GrowthBiasType.Branch ?
                 GetLocalEndpoint(randLength, currentNode.eulerAngles) : GetDirection(collisionBranchGrowthBias);
@@ -436,7 +462,7 @@ public class StructureGenerator : MonoBehaviour
         if(enablePrintDebug)Debug.Log(str);
     }
 
-    public List<Vector3Int> GenerateThickLine(Segment segment)
+    List<Vector3Int> GenerateThickLine(Segment segment)
     {
         // Get the thin center line
         List<Vector3Int> thinLine = GenerateLine(segment.startPos, segment.endPos);
@@ -462,7 +488,6 @@ public class StructureGenerator : MonoBehaviour
                     for (int z = -radius; z <= radius; z++)
                     {
                         // Check if this local offset is within the sphere's radius
-                        // (doing x*x + y*y + z*z is much faster than Vector3.Distance)
                         if (x * x + y * y + z * z <= radiusSquared)
                         {
                             //thickLine.Add(new Vector3Int(point.x + x, point.y + y, point.z + z));
@@ -470,11 +495,18 @@ public class StructureGenerator : MonoBehaviour
                             Vector3Int voxelPos = new Vector3Int(point.x + x, point.y + y, point.z + z);
 
                             // If it's occupied and we are out of the grace zone it might be a collision
-                            if (!insideGraceZone && WorldManager.Instance.container[voxelPos].id != 0)
+                            if ((useGraceZone ? !insideGraceZone : true) // if we are even using the grace zone
+                                && WorldManager.Instance.container[voxelPos].id != 0)
                             {
-                                print($"Object id = {assignableObjectId},  " +
+                                //if it is a leaf, ignore collision
+                                if (WorldManager.Instance.container[voxelPos].id == 1)
+                                {
+                                    currentSpherePoints.Add(voxelPos);
+                                    continue;
+                                }
+                                /*print($"Object id = {assignableObjectId},  " +
                                     $"collided object id = {WorldManager.Instance.container[voxelPos].objectId}");
-                                print("Position: " + voxelPos);
+                                print("Position: " + voxelPos);*/
                                 // If it is a completely different object (other plant or obstacle)
                                 if (WorldManager.Instance.container[voxelPos].objectId != assignableObjectId)
                                 {
@@ -508,7 +540,7 @@ public class StructureGenerator : MonoBehaviour
                                     if (ignoreSameParentBranchCollision &&
                                         segment.parentBranchId == allSegments[collidedBranchId].parentBranchId)
                                     {
-                                        print("Ignoring neighbour branch collision");
+                                        //print("Ignoring neighbour branch collision");
                                         /*print($"Neighbor branch collision: <color=yellow>{segment.startPos} --> " +
                                             $"{allSegments[collidedBranchId].startPos}</color>");*/
                                     }

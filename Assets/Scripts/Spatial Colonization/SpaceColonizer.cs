@@ -71,7 +71,7 @@ public class SpaceColonizer : MonoBehaviour
     HashSet<SCNode> newNodes = new HashSet<SCNode>();
     Dictionary<Vector3Int, List<Vector3Int>> nodesWithAttractors = new Dictionary<Vector3Int, List<Vector3Int>>();
 
-    Trunk trunk;
+    [HideInInspector] public Trunk trunk;
     AttractorManager attractorManager;
 
     //byte attractorVoxelID = 6;
@@ -79,11 +79,11 @@ public class SpaceColonizer : MonoBehaviour
     byte branchVoxelID = 2;
 
     ushort assignableBranchId = 0;
-    public byte assignableObjectId = 0;
+    [HideInInspector] public byte assignableObjectId = 0;
 
     [HideInInspector] TimeManager timeManager = new TimeManager();
 
-    public void Colonize(Vector3Int startingPoint)
+    public void Generate(Vector3Int startingPoint)
     {
         trunk = GetComponent<Trunk>();
         if(!TryGetComponent(out attractorManager))
@@ -92,12 +92,15 @@ public class SpaceColonizer : MonoBehaviour
             return;
         };
 
-        timeManager.StartGenTimer();
+        timeManager.StartAdditionalTimer();
 
         attractorManager.GenerateAttractors();
         attractorManager.ShowAttractors();
 
-        //return;
+        timeManager.StopAdditionalTimer();
+
+        timeManager.StartGenTimer();
+
         assignableObjectId = WorldManager.Instance.assignableObjectIdList.Last();
 
         List<SCNode> branchStartingNodes = trunk.GenerateTrunk(startingPoint);
@@ -158,6 +161,13 @@ public class SpaceColonizer : MonoBehaviour
         result.AppendLine($"--Trunk--");
         result.AppendLine($"branchesPerTrunkNode: {branchesPerTrunkNode}");
         result.AppendLine($"trunkBranchAngle: {trunkBranchAngle}");
+        result.AppendLine($"trunk.nodesAmount: {trunk.nodesAmount}");
+        result.AppendLine($"trunk.segmentLength: {trunk.segmentLength}");
+        result.AppendLine($"trunk.startingThickness: {trunk.startingThickness}");
+        result.AppendLine($"trunk.thicknessIncrease: {trunk.thicknessIncrease}");
+        result.AppendLine($"trunk.minBranchHeight: {trunk.minBranchHeight}");
+        result.AppendLine($"trunk.maxBranchHeight: {trunk.maxBranchHeight}");
+        result.AppendLine($"trunk.biasStrength: {trunk.biasStrength}");
         result.AppendLine();
         result.AppendLine($"--Attractors--");
         result.AppendLine($"attractorsAmount: {attractorManager.attractorsAmount}");
@@ -181,10 +191,23 @@ public class SpaceColonizer : MonoBehaviour
         result.AppendLine($"--Leaves--");
         result.AppendLine($"leafShape: {leafShape.name}");
         result.AppendLine();
-        result.AppendLine($"--Timers--");
-        result.AppendLine($"Generation time: {timeManager.GetGenTime()}");
-        result.AppendLine($"Avg collision detection time: {timeManager.GetColTimeAvg()}");
+        result.AppendLine($"--Statistics--");
+        result.AppendLine($"Attractors generation time: {timeManager.GetAdditionalTime()}");
+        result.AppendLine($"Plant generation time: {timeManager.GetGenTime()}");
+        result.AppendLine($"Avg collision detection time: {timeManager.GetCollisionDetTimeAvg()}");
+        result.AppendLine($"Voxel count: {WorldManager.Instance.container.data.Count}");
 
+        return result.ToString();
+    }
+
+    public string GetStatistics()
+    {
+        StringBuilder result = new StringBuilder();
+        result.Append($"{timeManager.GetAdditionalTime()}|");
+        result.Append($"{timeManager.GetGenTime()}|");
+        result.Append($"{timeManager.GetCollisionDetTimeAvg()}|");
+        result.Append($"{timeManager.GetColCount()}|");
+        result.Append($"{nodes.Count}");
         return result.ToString();
     }
 
@@ -514,6 +537,8 @@ public class SpaceColonizer : MonoBehaviour
             if (!branchCollision.didCollide) break;
             //print("<color=cyan>Reassigning branch angle...</color>");
 
+            timeManager.AddColCount();
+
             Vector3 randomOffset = Random.insideUnitSphere;
             Vector3 randomDirection = (node.direction + randomOffset).normalized;
             Vector3 biasedDirectionVec = Vector3.Slerp(randomDirection, addedBiasDirection, addedBiasStrength);
@@ -588,11 +613,14 @@ public class SpaceColonizer : MonoBehaviour
         int radius = thickness;
         int radiusSquared = radius * radius;
 
+        int graceDistanceSquared = (radius * 3) * (radius * 3);
+
         // Applying a spherical brush around every point
         foreach (Vector3Int point in thinLine)
         {
             bool collisionDetected = false;
             List<Vector3Int> currentSpherePoints = new List<Vector3Int>();
+            bool insideGraceZone = (point - startNode.position).sqrMagnitude <= graceDistanceSquared;
 
             for (int x = -radius; x <= radius; x++)
             {
@@ -609,7 +637,7 @@ public class SpaceColonizer : MonoBehaviour
                             Vector3Int voxelPos = new Vector3Int(point.x + x, point.y + y, point.z + z);
 
                             // If it's occupied and we are out of the grace zone it is a collision
-                            if (WorldManager.Instance.container[voxelPos].id != 0)
+                            if (!insideGraceZone && WorldManager.Instance.container[voxelPos].id != 0)
                             {
                                 // If it is a completely different object (other plant or obstacle)
                                 if (WorldManager.Instance.container[voxelPos].objectId != assignableObjectId)

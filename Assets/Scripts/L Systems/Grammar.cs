@@ -48,22 +48,6 @@ public class Grammar : ScriptableObject
             //rule.ReadCondition();
             rule.CompileRule();
         }
-
-        /*foreach (var symbol in alphabet)
-        {
-            foreach(var par in symbol.parameters)
-            {
-                foreach (var rule in par.rules)
-                {
-                    rule.CompileRule(alphabet);
-                }
-            }
-            foreach(var s in symbol.stringSuccessors)
-            {
-                Debug.Log("Symbol successor detected: " + s.Key);
-                symbol.successors.Add(ConvertStringToSymbols(s.Key), s.Value);
-            }
-        }*/
     }
 
     public List<Symbol> ConvertStringToSymbols(string str)
@@ -178,24 +162,6 @@ public class Grammar : ScriptableObject
         }
     }
 
-    /*public string GetLogicOperatorSign(LogicOperator op)
-    {
-        switch (op)
-        {
-            case LogicOperator.EqualTo:
-                return "=";
-            case LogicOperator.BiggerThan:
-                return ">";
-            case LogicOperator.LessThan:
-                return "<";
-            case LogicOperator.BiggerOrEqualTo:
-                return ">=";
-            case LogicOperator.LessOrEqualTo:
-                return "<=";
-            default:
-                return "=";
-        }
-    }*/
 
 #if UNITY_EDITOR
     private void OnValidate()
@@ -212,35 +178,6 @@ public class Grammar : ScriptableObject
     }
 #endif
 
-    /*#if UNITY_EDITOR
-        private void OnValidate()
-        {
-            if (alphabet != null)
-            {
-                for (int i = 0; i < alphabet.Length; i++)
-                {
-                    alphabet[i].name = alphabet[i].character.ToString();
-                    UpdateSymbolDictionary();
-
-                    if (alphabet[i].parameters != null)
-                    {
-                        foreach (var p in alphabet[i].parameters)
-                        {
-                            if (p.rules != null)
-                            {
-                                for (int j = 0; j < p.rules.Count(); j++)
-                                {
-
-                                    p.rules[j].name = p.name + " " + GetLogicOperatorSign(p.rules[j].logicOperator) 
-                                        + " " + p.rules[j].comparedVariable + "  -->  " + p.rules[j].successorStr;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    #endif*/
 }
 
 

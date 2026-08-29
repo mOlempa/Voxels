@@ -1,0 +1,144 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a147ee174ac0df44f840182e32131490, type: 3}
+  m_Name: Tree 2
+  m_EditorClassIdentifier: 
+  rootSentence: X(10)Y(21)
+  definedSymbols:
+  - name: A
+    character: 65
+    action: 0
+    parameters: []
+  - name: Y
+    character: 89
+    action: 1
+    parameters: []
+  - name: X
+    character: 88
+    action: 1
+    parameters: []
+  - name: Z
+    character: 90
+    action: 1
+    parameters: []
+  - name: L
+    character: 76
+    action: 8
+    parameters: []
+  - name: +
+    character: 43
+    action: 3
+    parameters: []
+  - name: '-'
+    character: 45
+    action: 2
+    parameters: []
+  - name: '['
+    character: 91
+    action: 6
+    parameters: []
+  - name: ']'
+    character: 93
+    action: 7
+    parameters: []
+  - name: o
+    character: 111
+    action: 4
+    parameters: []
+  - name: x
+    character: 120
+    action: 5
+    parameters: []
+  - name: '@'
+    character: 64
+    action: 10
+    parameters: []
+  - name: p
+    character: 112
+    action: 4
+    parameters: []
+  - name: q
+    character: 113
+    action: 5
+    parameters: []
+  - name: B
+    character: 66
+    action: 0
+    parameters: []
+  rules:
+  - predecessor: X(a)
+    userContext: 
+    condition: 
+    userSuccessors:
+      _serializedList:
+      - Key: X(a)
+        Value: 1
+      - Key: X(a+2)
+        Value: 3
+  - predecessor: p
+    userContext: 
+    condition: 
+    userSuccessors:
+      _serializedList:
+      - Key: '@(0,179)o'
+        Value: 1
+  - predecessor: q
+    userContext: 
+    condition: 
+    userSuccessors:
+      _serializedList:
+      - Key: '@(1,180)x'
+        Value: 1
+  - predecessor: B(a)
+    userContext: 
+    condition: a<10
+    userSuccessors:
+      _serializedList:
+      - Key: B(a+2)
+        Value: 1
+      - Key: Z(a)@(0,180)o(10)Z(10)
+        Value: 1
+  - predecessor: Y(a)
+    userContext: 
+    condition: a>17
+    userSuccessors:
+      _serializedList:
+      - Key: X(a)[pY(a-1)][qY(a-1)][o(15)Y(a-1)]
+        Value: 3
+      - Key: X(a)[pY(a-1)][qY(a-1)]
+        Value: 0
+      - Key: X(a)[pY(a-1)][qB(1)]
+        Value: 0
+      - Key: X(a)[qY(a-1)][pB(1)]
+        Value: 0
+  - predecessor: Y(a)
+    userContext: 
+    condition: a<=14
+    userSuccessors:
+      _serializedList:
+      - Key: X(a)[pB(1)][qB(1)]
+        Value: 1
+      - Key: Z(5)@(0,180)o(10)Z(10)Z(5)
+        Value: 5
+  - predecessor: Y(a)
+    userContext: 
+    condition: a<=17
+    userSuccessors:
+      _serializedList:
+      - Key: X(a)[pY(a-1)][qY(a-1)][o(15)Y(a-1)]
+        Value: 3
+      - Key: X(a)[pY(a-1)][qY(a-1)]
+        Value: 4
+      - Key: X(a)[pY(a-1)][qB(1)]
+        Value: 5
+      - Key: X(a)[qY(a-1)][pB(1)]
+        Value: 5

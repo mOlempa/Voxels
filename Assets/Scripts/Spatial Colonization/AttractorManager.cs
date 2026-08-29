@@ -84,9 +84,9 @@ public class AttractorManager : MonoBehaviour
             meshBounds = new Vector3Int(100, 50, 100);
             spawnArea.Calculate(meshBounds, Vector3Int.zero);
         }
-        int smallDist = 0;
+        /*int smallDist = 0;
         int medDist = 0;
-        int bigDist = 0;
+        int bigDist = 0;*/
         for (int i = 0; i < attractorsAmount; i++)
         {
             Vector3Int randPos = new Vector3Int(
@@ -121,7 +121,7 @@ public class AttractorManager : MonoBehaviour
 
         }
         attractorSpawnArea.GetComponent<MeshCollider>().enabled = false;
-        Debug.Log($"SMALL: {smallDist} -- MEDIUM: {medDist} -- BIG: {bigDist}");
+        //Debug.Log($"SMALL: {smallDist} -- MEDIUM: {medDist} -- BIG: {bigDist}");
     }
 
 

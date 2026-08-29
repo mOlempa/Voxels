@@ -33,7 +33,6 @@ public class Rule
     // A list of successors to be referenced every time the rule fires
     private List<Successor> successors = new List<Successor>();
 
-    // Possibly make it a list, might do multiple parameter comparison rules later but idk
     private (int index, Func<float, bool> func) compiledParamCondition;    // comparison with parameter index
 
     private Context compiledContext;
