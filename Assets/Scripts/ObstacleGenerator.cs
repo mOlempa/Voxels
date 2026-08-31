@@ -3,15 +3,30 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+/**
+ * Klasa zarz¹dzaj¹ca generowaniem przeszkód.
+ */
 public class ObstacleGenerator : MonoBehaviour
 {
+    /**
+     * Referencja do obiektu nadrzêdnego dla obiektów zawieraj¹cych siatki przeszkód.
+     */
     [SerializeField]
     GameObject obstaclesParent;
 
+    /**
+     * Tablica obiektów typu Collider przechowuj¹ca siatkê fizyczn¹ obiektu.
+     */
     [HideInInspector] public Collider[] obstacleColliders;
 
+    /**
+     * Zmienna typu int przechowuj¹ca liczbê wokseli dla wygenerowanych przeszkód.
+     */
     [HideInInspector] public int voxelCount = 0;
 
+    /**
+     * Metoda generuj¹ca przeszkody.
+     */
     public void GenerateObstacle()
     {
         obstacleColliders = obstaclesParent.GetComponentsInChildren<Collider>();
@@ -40,12 +55,16 @@ public class ObstacleGenerator : MonoBehaviour
         }
     }
 
+    /**
+     * Metoda generuj¹ca woksele dla przeszkód na podstawie obliczonych pozycji.
+     * @param positions lista pozycji dla wokseli przeszkód.
+     */
     void GenerateVoxels(List<Vector3Int> positions)
     {
         voxelCount = positions.Count;
         foreach (var pos in positions)
         {
-            WorldManager.Instance.container[pos] = new Voxel()
+            MainManager.Instance.container[pos] = new Voxel()
             {
                 id = 100,
                 objectId = 0,    // obstacles are counted together as one object

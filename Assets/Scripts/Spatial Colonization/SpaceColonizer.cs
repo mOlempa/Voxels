@@ -14,76 +14,205 @@ using static Constants;
 using Unity.VisualScripting;
 using System.Text;
 
+/**
+ * Klasa zarz¹dzaj¹ca algorytmem kolonizacji przestrzeni.
+ */
 [RequireComponent(typeof(Trunk))]
 public class SpaceColonizer : MonoBehaviour
 {
+    /**
+     * Zmienna typu bool umo¿liwiaj¹ca w³¹czenie wyœwietlania wybranych informacji dzia³ania programu w konsoli edytora.
+     */
     public bool enableDebug = false;
 
+    
     [Header("General")]
+
+    /**
+     * Zmienna typu int okreœlaj¹ca liczbê iteracji algorytmu, dostêpna w inspektorze.
+     */
+    [Range(1, 50)]
     public int iterations = 5;
+
+    /**
+     * Zmienna typu int okreœlaj¹ca maksymalny promieñ przekroju ga³êzi, dostêpna w inspektorze.
+     */
     [Range(1, 50)]
     public int maxThickness = 5;
+
+    /**
+     * Zmienna typu int okreœlaj¹ca si³ê g³ównego preferowanego kierunku rozrostu, dostêpna w inspektorze.
+     */
     [Range(0, 1)]
     public float branchDirBiasStrength = 0;
+
+    /**
+     * Zmienna typu int okreœlaj¹ca dodatkowy preferowany kierunek rozrostu, dostêpna w inspektorze.
+     */
     [Highlight(0.6f, 0.7f, 0.6f)]
     public Vector3 addedBiasDirection = Vector3.up;
+
+    /**
+     * Zmienna typu int okreœlaj¹ca si³ê dodatkowego preferowanego kierunku rozrostu, dostêpna w inspektorze.
+     */
     [Highlight(0.6f, 0.7f, 0.6f)]
     [Range(0, 1)]
     public float addedBiasStrength = 0;
 
     [Header("Trunk")]
+
+    /**
+     * Zmienna typu int okreœlaj¹ca iloœæ ga³êzi na wêze³ pnia, dostêpna w inspektorze.
+     */
     [Range(1, 6)]
     public int branchesPerTrunkNode = 1;
+
+    /**
+     * Zmienna typu int okreœlaj¹ca maksymalny k¹t ga³êzi wychodz¹cej z pnia, dostêpna w inspektorze.
+     */
+    [Range(1, 180)]
     public int trunkBranchAngle = 90;
 
     [Header("Nodes Settings")]
+
+    /**
+     * Zmienna typu int okreœlaj¹ca d³ugoœæ segmentów modelu, dostêpna w inspektorze.
+     */
     [Range(2, 100)]
     public int segmentLength = 5;
+
+    /**
+     * Zmienna typu int okreœlaj¹ca maksymalny k¹t rotacji segmentu z wêz³a koñcz¹cego ga³¹Ÿ, dostêpna w inspektorze.
+     */
     [Range(0, 180)]
     public int maxBranchRotationAngle = 45;
+
+    /**
+     * Zmienna typu int okreœlaj¹ca maksymalny k¹t rotacji segmentu z wêz³a pomiêdzy istniej¹cymi segmentami, 
+     * dostêpna w inspektorze.
+     */
     [Range(0, 180)]
     public int maxDebranchRotationAngle = 90;
+
+    /**
+     * Zmienna typu int okreœlaj¹ca maksymaln¹ iloœæ kolejnych segmentów od wêz³a pnia, dostêpna w inspektorze.
+     */
     [Range(1, 100)]
     public int maxBranchLevel = 10;
+
+    /**
+     * Zmienna typu int okreœlaj¹ca maksymaln¹ iloœæ wychodz¹cych segmentów z pojedynczego wêz³a, dostêpna w inspektorze.
+     */
     [Range(0, 5)]
     public int maxBranchOuts = 2;
+
+    /**
+     * Zmienna typu bool umo¿liwiaj¹ca ga³êziom przeszukiwanie przestrzeni w losowym kierunku bez atraktorów, 
+     * dostêpna w inspektorze.
+     */
     [Highlight(0.7f, 0.7f, 1f)]
     public bool seekingBranchesEnabled = false;
+
+    /**
+     * Zmienna typu float okreœlaj¹ca si³ê losowoœci kierunku przeszukiwania przestrzeni dla ga³êzi, dostêpna w inspektorze.
+     */
     [Highlight(0.7f, 0.7f, 1f)]
     [Range(0, 1)]
     public float randomizeBranchDirection = 0;
 
     [Header("Collision Stuff")]
+
+    /**
+     * Zmienna typu int okreœlaj¹ca dla jakich maksymalnych gruboœci ga³êzi kolizje mog¹ byæ ignorowane, 
+     * dostêpna w inspektorze.
+     */
     [Range(0, 10)]
     public int allowedBranchCollisionLevel = 1;
+
+    /**
+     * Zmienna typu int okreœlaj¹ca liczbê ponownych prób generowania segmentu w przypadku kolizji, dostêpna w inspektorze.
+     */
     public int branchTrialTimes = 0;
 
     [Header("Leaves")]
-    [SerializeField] LeafShape leafShape;
-    public int recursionLevel = 3;
 
+    /**
+     * Obiekt typu LeafShape przechowuj¹cy referencjê do obiektu definiuj¹cego kszta³tu liœcia, dostêpny w inspektorze.
+     */
+    [SerializeField] LeafShape leafShape;
+
+    /**
+     * Zmienna typu int okreœlaj¹ca iloœæ kolejnych wêz³ów od koñca ga³êzi, na których zostan¹ umieszczone 
+     * liœcie, dostêpna w inspektorze.
+     */
+    public int leafNodeRecursionLevel = 3;
+
+    /**
+     * Obiekt typu BranchCollisionHelper przechowuj¹cy dane dotycz¹ce kolizji, pomaga w zarz¹dzaniu kolizjami.
+     */
     private BranchCollisionHelper branchCollision = new BranchCollisionHelper();
 
-
+    /**
+     * Struktura danych typu HashSet, przechowuj¹ca wêz³y struktury modelu.
+     */
     HashSet<SCNode> nodes = new HashSet<SCNode>();
-    //HashSet<Vector3Int> attractors = new HashSet<Vector3Int>();
-    SpatialHashGrid<SCNode> nodesGrid;
+
+    /**
+     * Struktura danych typu HashSet, przechowuj¹ca nowy zestaw wêz³ów struktury modelu.
+     */
     HashSet<SCNode> newNodes = new HashSet<SCNode>();
+
+    /**
+     * Obiekt klasy SpatialHashGrid, przechowuj¹cej wêz³y w siatce z haszowaniem przestrzeni s³u¿¹cej 
+     * do szybkiego wyszukiwania
+     */
+    SpatialHashGrid<SCNode> nodesGrid;
+
+    /**
+     * Struktura danych typu Dictionary, s³ownik przechowuj¹cy listy atraktorów maj¹cych wp³yw na dane wêz³y;
+     */
     Dictionary<Vector3Int, List<Vector3Int>> nodesWithAttractors = new Dictionary<Vector3Int, List<Vector3Int>>();
 
+    /**
+     * Obiekt klasy Trunk obs³uguj¹cy pieñ modelu roœliny.
+     */
     [HideInInspector] public Trunk trunk;
+
+    /**
+     * Referencja do obiektu klasy AttractorManager odpowiedzialnego za zarz¹dzanie atraktorami.
+     */
     AttractorManager attractorManager;
 
-    //byte attractorVoxelID = 6;
+    /**
+     * Zmienna typu bajt okreœlaj¹ca identyfikator dla wokseli reprezentuj¹cych usuniête atraktory 
+     * w przypadku wyœwietlania ich.
+     */
     byte killedAttractorVoxelID = 3;
+
+    /**
+     * Zmienna typu bajt okreœlaj¹ca identyfikator dla wokseli reprezentuj¹cych ga³êzie struktury modelu. 
+     */
     byte branchVoxelID = 2;
 
+    /**
+     * Zmienna typu ushort okreœlaj¹ca dostêpny identyfikator do przyjêcia dla kolejnej ga³êzi. 
+     */
     ushort assignableBranchId = 0;
+
+    /**
+     * Zmienna typu byte okreœlaj¹ca dostêpny identyfikator dla kolejnego obiektu na scenie.
+     */
     [HideInInspector] public byte assignableObjectId = 0;
 
+    /**
+     * Obiekt klasy TimeManager odpowiedzialnej za pomiary czasu. 
+     */
     [HideInInspector] TimeManager timeManager = new TimeManager();
 
-    public void Generate(Vector3Int startingPoint)
+    /**
+     * Metoda zarz¹dzaj¹ca algorytmem, wywo³uj¹ca poszczególne etapy algorytmu.
+     */
+    public void Generate()
     {
         trunk = GetComponent<Trunk>();
         if(!TryGetComponent(out attractorManager))
@@ -101,13 +230,12 @@ public class SpaceColonizer : MonoBehaviour
 
         timeManager.StartGenTimer();
 
-        assignableObjectId = WorldManager.Instance.assignableObjectIdList.Last();
+        assignableObjectId = MainManager.Instance.assignableObjectIdList.Last();
 
-        List<SCNode> branchStartingNodes = trunk.GenerateTrunk(startingPoint);
+        List<SCNode> branchStartingNodes = trunk.GenerateTrunk(new Vector3Int(0, 0, 0));
 
         foreach(SCNode node in branchStartingNodes)
         {
-            //GetRandomRotatedDirection(node.direction, trunkBranchAngle);
             nodes.Add(new SCNode()
             {
                 position = node.position,
@@ -121,8 +249,8 @@ public class SpaceColonizer : MonoBehaviour
                 branchId = assignableBranchId,
                 parentBranchId = 0,
             });
-            //Debug.Log($"Creating new branch node {nodes.Last().position} with thickness {nodes.Last().thickness}");
             assignableBranchId++;
+
             // Populating the hash grid
             RepopulateNodesGrid();
         }
@@ -148,6 +276,10 @@ public class SpaceColonizer : MonoBehaviour
 
     }
 
+    /**
+     * Metoda zwracaj¹ca dane do zapisu parametrów wejœciowych algorytmu.
+     * @return string zapis parametrów wejœciowych algorytmu.
+     */
     public string GetDataString()
     {
         StringBuilder result = new StringBuilder();
@@ -195,11 +327,15 @@ public class SpaceColonizer : MonoBehaviour
         result.AppendLine($"Attractors generation time: {timeManager.GetAdditionalTime()}");
         result.AppendLine($"Plant generation time: {timeManager.GetGenTime()}");
         result.AppendLine($"Avg collision detection time: {timeManager.GetCollisionDetTimeAvg()}");
-        result.AppendLine($"Voxel count: {WorldManager.Instance.container.data.Count}");
+        result.AppendLine($"Voxel count: {MainManager.Instance.container.data.Count}");
 
         return result.ToString();
     }
 
+    /**
+     * Metoda zwracaj¹ca pomiary wykonane w skrypcie.
+     * @return string dane pomiarowe algorytmu.
+     */
     public string GetStatistics()
     {
         StringBuilder result = new StringBuilder();
@@ -211,11 +347,12 @@ public class SpaceColonizer : MonoBehaviour
         return result.ToString();
     }
 
-
+    /**
+     * Metoda wywo³uj¹ca generowanie nowych wêz³ów, podmianê zbioru wêz³ów na nowy, usuniêcie 
+     * atraktorów w zasiêgu wêz³ów i aktualizacjê siatki haszowania przestrzeni dla wêz³ów.
+     */
     void GrowBranches()
     {
-        //FindNearestNodes();
-
         foreach (SCNode node in nodes)
         {
             ManageNewBranch(node);
@@ -232,33 +369,32 @@ public class SpaceColonizer : MonoBehaviour
         RepopulateNodesGrid();
     }
 
+    /**
+     * Metoda wyznaczaj¹ca wêz³y do umieszczenia liœci i wywo³uj¹ca metodê generowania liœci
+     */
     void GrowLeaves()
     {
         if (leafShape == null || leafShape.leafPoints.Length == 0) return;
 
         List<SCNode> leafNodes = new List<SCNode>();
-        //string ids = "";
         foreach(var node in nodes)
         {
-            //ids += $"{node.branchId}-{node.parentBranchId} == ";
             if (!node.startsBranch)
             {
                 // Add either 1 or 2 leaves
                 for(int n = 0; n < Random.Range(1, 2);  n++) leafNodes.Add(node);
 
-                for (int i = 0; i < recursionLevel; i++)
+                for (int i = 0; i < leafNodeRecursionLevel; i++)
                 {
                     // Find parent of the last added parent
                     SCNode parent = nodes.FirstOrDefault(n => n.branchId == leafNodes.Last().parentBranchId);
                     if (parent.branchId != leafNodes.Last().parentBranchId) break;
                     // Add this new parent
-                   //leafNodes.Add(parent);
                     for (int n = 0; n < Random.Range(1, 2); n++) leafNodes.Add(parent);
 
                 }
             }
         }
-        //Debug.Log(ids);
 
         foreach(SCNode node in leafNodes)
         {
@@ -267,6 +403,9 @@ public class SpaceColonizer : MonoBehaviour
         }
     }
 
+    /**
+     * Metoda aktualizuj¹ca siatkê haszowania przestrzeni dla wêz³ów.
+     */
     void RepopulateNodesGrid()
     {
         nodesGrid = new SpatialHashGrid<SCNode>(attractorManager.maxDistance);
@@ -276,7 +415,9 @@ public class SpaceColonizer : MonoBehaviour
         }
     }
 
-
+    /**
+     * Metoda przypisuj¹ca atraktorów do najbli¿szych wêz³ów znalezionych w ich zasiêgu
+     */
     void FindNearestNodes()
     {
         nodesWithAttractors.Clear();
@@ -319,10 +460,12 @@ public class SpaceColonizer : MonoBehaviour
 
     }
 
-
+    /**
+     * Metoda zarz¹dzaj¹ca generowaniem nowej ga³êzi na podstawie przekazanego wêz³a.
+     * @param node wêze³ typu SCNode koñcz¹cy nowy segment.
+     */
     void ManageNewBranch(SCNode node)
     {
-        // TODO: Make a separate list for nodes that won't grow branches anymore and connect it at the end?
         if (node.branchLevel >= maxBranchLevel)
         {
             print($"<color=red>XX</color> Max branch level reached for node <color=yellow>{node.position}</color>");
@@ -399,11 +542,8 @@ public class SpaceColonizer : MonoBehaviour
 
                 Vector3 randomOffset = Random.insideUnitSphere * randomizeBranchDirection;
                 Vector3 randomDirection = (node.direction + randomOffset).normalized;
-
-                /*if (addedBiasStrength > 0)
-                    randomDirection = Vector3.Slerp(randomDirection, addedBiasDirection.normalized, addedBiasStrength);*/
-
                 Vector3Int endpointOffset = Vector3Int.RoundToInt(randomDirection * node.length);
+
                 // Create a new segment
                 CreateSegment(node, endpointOffset, randomDirection, true);
 
@@ -416,11 +556,18 @@ public class SpaceColonizer : MonoBehaviour
         }
     }
 
-    // In case of growing multiple times in the same direction, manipulate the direction vector
+    /**
+     * Metoda zarz¹dzaj¹ca przekierowywaniem nowych koliduj¹cych ga³êzi identycznych do ju¿ powsta³ych.
+     * @param node wêze³ nowej ga³êzi koliduj¹cej.
+     * @param directionVec obecny kierunek nowej ga³êzi koliduj¹cej.
+     * @return Vector3 nowy kierunek dla ga³êzi.
+     */
     Vector3 HandleRegrowth(SCNode node, Vector3 directionVec)
     {
+        // In case of growing multiple times in the same direction, manipulate the direction vector
+
         // Try each close attractor for collision with already grown branches
-        foreach(var attractor in nodesWithAttractors[node.position])
+        foreach (var attractor in nodesWithAttractors[node.position])
         {
             print($"Trying growth towards attractor <color=lime>{attractor}</color>");
             // If the node position is already taken (the branch has already grown that way)
@@ -446,7 +593,12 @@ public class SpaceColonizer : MonoBehaviour
     }
 
 
-
+    /**
+     * Metoda ograniczaj¹ca kierunek ga³êzi.
+     * @param directionVec obecny kierunek ga³êzi.
+     * @param node wêze³ koñcz¹cy ga³¹Ÿ.
+     * @return Vector3 nowy, ograniczony kierunek ga³êzi.
+     */
     Vector3 ClampDirectionAngle(Vector3 directionVec, SCNode node)
     {
         // Check if angle change for the branch (angle between vectors) is more than max
@@ -455,19 +607,22 @@ public class SpaceColonizer : MonoBehaviour
         float t = 1 - maxAngle / angle;
         if (angle > maxBranchRotationAngle)
         {
-            /*Debug.LogWarning($"Angle <color=cyan>{angle} --> " +
-                $"{Vector3.SignedAngle(Vector3.Slerp(directionVec, node.direction, t), node.direction, Vector3.forward)}" +
-                $"</color>");*/
             return Vector3.Slerp(directionVec, node.direction, t);
         }
         return directionVec;
     }
 
-
+    /**
+     * Metoda zarz¹dzaj¹ca nowym segmentem na podstawie wêz³a rozpoczynaj¹cego segment i obliczonego punktu koñcowego.
+     * @param node istniej¹cy wêze³ rozpoczynaj¹cy segment.
+     * @param endpointOffset trójwymiarowy wektor przemieszczenia w wokselach dla koñcowego punktu.
+     * @param endpointDirection kierunek nowego segmentu.
+     * @param decreaseEnergy wartoœæ decyduj¹ca o obni¿eniu poziomu energii nowego wêz³a.
+     */
     void CreateSegment(SCNode node, Vector3Int endpointOffset, Vector3 endpointDirection, bool decreaseEnergy)
     {
-        int branchLevel = node.startsBranch ? node.branchLevel + 1 : node.branchLevel;
-        int length = node.length; //-  branchLevel/maxBranchLevel;
+        int branchLevel = node.startsBranch ? node.branchLevel : node.branchLevel + 1;
+        int length = node.length;
         SCNode startNode = new SCNode()
         {
             position = node.position,
@@ -485,9 +640,6 @@ public class SpaceColonizer : MonoBehaviour
         int thickness;
         // if inherited thickness is larger than the max thickness, clamp it
         if (node.thickness > maxThickness) thickness = maxThickness;
-        // if the node starts a branch already decrease the thickness (if larger than 1), otherwise
-        // (case: node ends the branch) inherit thickness
-        //else thickness = node.startsBranch ? (node.thickness > 1 ? node.thickness - 1 : 1) : node.thickness;
         else 
         {
             if (node.startsBranch)
@@ -496,8 +648,6 @@ public class SpaceColonizer : MonoBehaviour
             }
             else
             {
-                /*thickness = (int)(node.branchLevel / maxBranchLevel * maxThickness);
-                Debug.Log($"thickness {thickness} = {node.branchLevel} / {maxBranchLevel} * {maxthi}");*/
                 if(node.branchLevel == 0) thickness = node.thickness > 1 ? node.thickness - 1 : 1;
                 else thickness = node.thickness;
             }
@@ -514,18 +664,13 @@ public class SpaceColonizer : MonoBehaviour
             length = length,
             branchOuts = 0,
             parentBranchId = node.branchId,
-            branchId = assignableBranchId,
-            //length = node.startsBranch && length > 3 ? length - 1 : length,
+            branchId = assignableBranchId
         };
 
         print($"New start node: {startNode.position} -- startsBranch = <color=lime>{startNode.startsBranch}</color>");
         print($"New end node: {endNode.position} -- startsBranch = <color=lime>{endNode.startsBranch}</color>");
 
-
-        //GenerateVoxels(Utilities.GenerateThickLine(startNode.position, endNode.position, startNode.thickness));
         List<Vector3Int> voxelPositions = GenerateThickLine(startNode, endNode, startNode.thickness);
-
-        //Vector3 savedDir = endNode.direction;
 
         timeManager.StartColTimer();
 
@@ -533,9 +678,9 @@ public class SpaceColonizer : MonoBehaviour
         {
             branchCollision.didCollide = false;
             voxelPositions = GenerateThickLine(startNode, endNode, startNode.thickness);
+
             // If no collision detected, proceed with the branch
             if (!branchCollision.didCollide) break;
-            //print("<color=cyan>Reassigning branch angle...</color>");
 
             timeManager.AddColCount();
 
@@ -545,13 +690,6 @@ public class SpaceColonizer : MonoBehaviour
 
             Vector3Int offset = Vector3Int.RoundToInt(biasedDirectionVec * node.length);
 
-            /*Vector3 biasedCollisionDir = collisionBranchGrowthBias == GrowthBiasType.Branch ?
-                GetLocalEndpoint(randLength, currentNode.eulerAngles) : GetDirection(collisionBranchGrowthBias);
-
-            // Biased towards specific branch direction
-            currentNode.position = savedPos + GetLocalEndpoint(randLength,
-                GetBiasedLocalRotation(currentNode.eulerAngles, biasedCollisionDir));*/
-
             endNode.position = node.position + offset;
             endNode.direction = biasedDirectionVec;
         }
@@ -560,9 +698,7 @@ public class SpaceColonizer : MonoBehaviour
 
         if (branchCollision.didCollide)
         {
-            //Debug.Log($"Collision at <color=red>{startNode.position}</color>!");
             newNodes.Add(startNode);
-            //Debug.Log($"Branch stays at {startNode.position}");
         }
         else
         {
@@ -570,26 +706,22 @@ public class SpaceColonizer : MonoBehaviour
             newNodes.Add(startNode);
             newNodes.Add(endNode);
             assignableBranchId++;
-            /*Debug.Log($"New branch {startNode.position} - {endNode.position}  -->  " +
-                $"<color=lime>id: {startNode.branchId}-{endNode.branchId}</color>");*/
         }
-
-
-        /*GenerateVoxels(voxelPositions, startNode.branchId);
-        newNodes.Add(startNode);
-        newNodes.Add(endNode);*/
-        //assignableBranchId++;
     }
 
     
-
+    /**
+     * Metoda generuj¹ca woksele na podstawie danych pozycji i identyfikatora ga³êzi.
+     * @param positions lista pozycji wokseli.
+     * @param branchId identyfikator ga³êzi.
+     */
     void GenerateVoxels(List<Vector3Int> positions, ushort branchId)
     {
         foreach (var pos in positions)
         {
-            // Don't overwrite killed attractors
-            if (WorldManager.Instance.container[pos].id == killedAttractorVoxelID) continue;
-            WorldManager.Instance.container[pos] = new Voxel()
+            // Don't overwrite killed attractors if their visibility is enabled
+            if (MainManager.Instance.container[pos].id == killedAttractorVoxelID) continue;
+            MainManager.Instance.container[pos] = new Voxel()
             {
                 id = branchVoxelID,
                 branchId = branchId,
@@ -598,12 +730,23 @@ public class SpaceColonizer : MonoBehaviour
         }
     }
 
+    /**
+     * Metoda wyœwietlaj¹ca tekst w konsoli edytora.
+     * @param str tekst do wyœwietlenia
+     */
     void print(string str)
     {
         if (enableDebug)
             Debug.Log(str);
     }
 
+    /**
+     * Metoda generuj¹ca pozycje wokseli nowego segmentu na podstawie danego punktu startowego, koñcowego i gruboœci.
+     * @param startNode wêze³ rozpoczynaj¹cy segment.
+     * @param endNode wêze³ koñcz¹cy segment
+     * @param thickness promieñ przekroju segmentu (gruboœæ).
+     * @return List lista pozycji wokseli nowego segmentu.
+     */
     public List<Vector3Int> GenerateThickLine(SCNode startNode, SCNode endNode, int thickness)
     {
         // Get the thin center line
@@ -632,15 +775,13 @@ public class SpaceColonizer : MonoBehaviour
                         // (doing x*x + y*y + z*z is much faster than Vector3.Distance)
                         if (x * x + y * y + z * z <= radiusSquared)
                         {
-                            //thickLine.Add(new Vector3Int(point.x + x, point.y + y, point.z + z));
-
                             Vector3Int voxelPos = new Vector3Int(point.x + x, point.y + y, point.z + z);
 
                             // If it's occupied and we are out of the grace zone it is a collision
-                            if (!insideGraceZone && WorldManager.Instance.container[voxelPos].id != 0)
+                            if (!insideGraceZone && MainManager.Instance.container[voxelPos].id != 0)
                             {
                                 // If it is a completely different object (other plant or obstacle)
-                                if (WorldManager.Instance.container[voxelPos].objectId != assignableObjectId)
+                                if (MainManager.Instance.container[voxelPos].objectId != assignableObjectId)
                                 {
                                     collisionDetected = true;
                                     branchCollision.collisionsCount++;
@@ -652,7 +793,7 @@ public class SpaceColonizer : MonoBehaviour
                                 if (allowedBranchCollisionLevel > 0)
                                 {
                                     // If it is the smaller branches that collide with each other, ignore collision
-                                    if (WorldManager.Instance.container[voxelPos].id - 1 <= allowedBranchCollisionLevel
+                                    if (MainManager.Instance.container[voxelPos].id - 1 <= allowedBranchCollisionLevel
                                         && thickness <= allowedBranchCollisionLevel)
                                     {
                                         currentSpherePoints.Add(voxelPos);
@@ -661,19 +802,10 @@ public class SpaceColonizer : MonoBehaviour
                                 }
 
                                 // Ignore collisions with the parent branch
-                                if (startNode.parentBranchId != WorldManager.Instance.container[voxelPos].branchId)
+                                if (startNode.parentBranchId != MainManager.Instance.container[voxelPos].branchId)
                                 {
-                                    // If the branches have the same parent and same-parent collision can be ignored
-                                    /*if (ignoreSameParentBranchCollision &&
-                                        startNode.parentBranchId == allSegments[collidedBranchId].parentBranchId)
+                                    if (thickness <= MainManager.Instance.container[voxelPos].id - 1)
                                     {
-
-                                    }
-                                    // Make the small branches move away, big branches will ignore collisions with smaller
-                                    else */if (thickness <= WorldManager.Instance.container[voxelPos].id - 1)
-                                    {
-                                        /*Debug.Log($"-> Collision of branch - thickness: {thickness}, " +
-                                            $"branchId: {startNode.branchId}, parentBranchId: {startNode.parentBranchId}");*/
                                         collisionDetected = true;
                                         branchCollision.collisionsCount++;
                                         branchCollision.didCollide = true;

@@ -3,29 +3,18 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
+/**
+ * Klasa zawieraj¹ca dodatkowe metody statyczne u¿ywane w pozosta³ych skryptach.
+ */
 public class Utilities
 {
-    public static int GetNthIndex(string s, char t, int n)
-    {
-        int count = 0;
-        for (int i = 0; i < s.Length; i++)
-        {
-            if (s[i] == t)
-            {
-                count++;
-                if (count == n)
-                {
-                    return i;
-                }
-            }
-        }
-        return -1;
-    }
-
-    // Returns the parameter index from user-declared predecessor, e.g. from string "F(x,y)":
-    // for name "x" returns 0,
-    // for name "y" returns 1,
-    // for name "a" returns -1
+    /**
+     * Metoda zwracaj¹ca indeks parametru z poprzednika wprowadzonego przez u¿ytkownika na podstawie nazwy parametru.
+     * Przyk³adowo dla "F(x,y)": nazwa "x" zwraca 0; nazwa "y" zwraca 1; nazwa "a" zwraca -1.
+     * @param str poprzednik zadeklarowany przez u¿ytkownika w postaci ci¹gu znaków.
+     * @param paramName nazwa parametru.
+     * @return int indeks parametru.
+     */
     public static int GetDeclaredParamIndex(string str, char paramName)
     {
         int openBracket = str.IndexOf('(');
@@ -51,19 +40,28 @@ public class Utilities
         return -1;
     }
 
+    /**
+     * Metoda obliczaj¹ca lokalny punkt koñcz¹cy segment jako przesuniêcie od punktu startowego.
+     * @param length d³ugoœæ segmentu pomiêdzy punktami.
+     * @param eulerAngles k¹t obrotu zamierzonego segmentu.
+     * @return Vector3Int pozycja punktu koñcz¹cego segment w odniesieniu do punktu startowego segmentu.
+     */
     public static Vector3Int GetLocalEndpoint(float length, Vector3 eulerAngles)
     {
-        // Converting the Euler angles into a rotation Quaternion
         Quaternion rotation = Quaternion.Euler(eulerAngles);
 
-        // Multiplying the rotation by Unity's forward vector (0, 0, 1) scaled by length
-        // (in Unity, multiplying a Quaternion by a Vector3 rotates that vector)
+        // Multiplying the rotation by forward vector scaled by length
         Vector3 floatingPointTarget = rotation * Vector3.forward * length;
 
-        // Converting the floating-point position to integer voxel coordinates
         return Vector3Int.RoundToInt(floatingPointTarget);
     }
 
+    /**
+     * Metoda obliczaj¹ca uœredniony znormalizowany wektor kierunku.
+     * @param startPosition pozycja wêz³a startowego.
+     * @param endpointPositions pozycja wêz³ów koñcz¹cych w kierunku pojedynczych atraktorów.
+     * @return Vector3 znormalizowany uœredniony wektor kierunku.
+     */
     public static Vector3 GetAveragedNormalizedDirectionVector(Vector3Int startPosition, List<Vector3Int> endpointPositions)
     {
         Vector3 vectorSum = new Vector3();
@@ -75,7 +73,13 @@ public class Utilities
         return Vector3.Normalize(vectorSum / endpointPositions.Count);
     }
 
-    // Generating a line of voxels (positions) between two points based on Bresenham 3D algorithm
+    /**
+     * Metoda generuj¹ca listê pozycji wokseli pomiêdzy dwoma punktami w przestrzeni na podstawie
+     * trójwymiarowej wersji algorytmu Bresenhama.
+     * @param A pozycja pocz¹tkowa
+     * @param B pozycja koñcowa
+     * @return List lista pozycji wokseli dla segmentu miêdzy podanymi punktami.
+     */
     public static List<Vector3Int> GenerateLine(Vector3Int A, Vector3Int B)
     {
         List<Vector3Int> points = new List<Vector3Int>
@@ -157,6 +161,13 @@ public class Utilities
         return points;
     }
 
+    /**
+     * Metoda generuj¹ca pozycje wokseli wokó³ segmentu na podstawie jego gruboœci.
+     * @param A pocz¹tkowa pozycja segmentu.
+     * @param B koñcowa pozycja segmentu.
+     * @param radius promieñ po¿¹danego przekroju segmentu.
+     * @return List lsita pozycji wokseli powoduj¹cych zgrubienie segmentu.
+     */
     public static List<Vector3Int> GenerateThickLine(Vector3Int A, Vector3Int B, int radius)
     {
         // Get the thin center line
@@ -166,7 +177,7 @@ public class Utilities
 
         int radiusSquared = radius * radius;
 
-        // Applying a spherical brush around every point
+        // Apply a spherical brush around every point
         foreach (Vector3Int point in thinLine)
         {
             for (int x = -radius; x <= radius; x++)
@@ -176,7 +187,6 @@ public class Utilities
                     for (int z = -radius; z <= radius; z++)
                     {
                         // Check if this local offset is within the sphere's radius
-                        // (doing x*x + y*y + z*z is much faster than Vector3.Distance)
                         if (x * x + y * y + z * z <= radiusSquared)
                         {
                             thickLine.Add(new Vector3Int(point.x + x, point.y + y, point.z + z));
@@ -189,7 +199,12 @@ public class Utilities
         return thickLine.ToList();
     }
 
-
+    /**
+     * Metoda zwracaj¹ca informacjê o tym, czy punkt znajduje siê w fizycznej siatce obiektu.
+     * @param other obiekt typu Collider, w którym badana jest obecnoœæ punktu.
+     * @param point badany punkt w przestrzeni.
+     * @return bool zwracana informacja o obecnoœci punktu w siatce.
+     */
     public static bool IsPointInCollider(Collider other, Vector3 point)
     {
         Vector3 direction = other.bounds.center - point;
@@ -197,7 +212,7 @@ public class Utilities
 
         foreach (RaycastHit hit in hits)
         {
-            // IF collider was hit, the point is outside of the mesh colldier
+            // If collider was hit, the point is outside of the mesh colldier
             if (hit.collider == other)
             {
                 return false;
@@ -208,31 +223,56 @@ public class Utilities
         return true;
     }
 
+    /**
+     * Metoda zwracaj¹ca losowy kierunek na powierzchni "sto¿ka" zdefiniowanego przez k¹t obrotu od
+     * oryginalnego wektora kierunku segmentu.
+     * @param originalDirection oryginalny kierunek segmentu.
+     * @param angleDegrees k¹t, o który mo¿liwy jest obrót segmentu.
+     * @return Vector3 wylosowany kierunek.
+     */
     public static Vector3 GetRandomRotatedDirection(Vector3 originalDirection, float angleDegrees)
     {
-        // 1. Normalize the original direction to keep calculations accurate
+        // Normalize the original direction to keep calculations accurate
         originalDirection.Normalize();
 
-        // 2. Find a perpendicular vector to act as a baseline rotation axis
+        // Find a perpendicular vector to act as a baseline rotation axis
         Vector3 perpendicularAxis = Vector3.Cross(originalDirection, Vector3.up);
         
-        // Edge Case: If originalDirection points straight up or down, the cross product fails (returns zero).
-        // If that happens, we use Vector3.forward instead to establish a perpendicular axis.
+        // If originalDirection points straight up or down, the cross product returns zero
         if (perpendicularAxis.sqrMagnitude < 0.001f)
         {
             perpendicularAxis = Vector3.Cross(originalDirection, Vector3.forward);
         }
         perpendicularAxis.Normalize();
 
-        // 3. Tilt the vector away from the center by the exact angle
+        // Tilt the vector away from the center by the exact angle
         Vector3 tiltedVector = Quaternion.AngleAxis(angleDegrees, perpendicularAxis) * originalDirection;
 
-        // 4. Spin the tilted vector around the original direction axis by a random 360-degree angle
+        // Spin the tilted vector around the original direction axis by a random 360-degree angle
         float randomRoll = Random.Range(0f, 360f);
         Vector3 finalDirection = Quaternion.AngleAxis(randomRoll, originalDirection) * tiltedVector;
 
         return finalDirection;
     }
 
-    
+    /**
+     * Metoda zwracaj¹ca wektor kierunku na podstawie typu GrowthBiasType okreœlaj¹cego preferowany kierunek rozrostu.
+     * @param type typ preferowanego kierunku rozrostu.
+     * @return Vector3 zwracany kierunek.
+     */
+    public static Vector3 GetDirection(GrowthBiasType type)
+    {
+        switch (type)
+        {
+            default:
+            case GrowthBiasType.None:
+                return Vector3.zero;
+            case GrowthBiasType.Up:
+                return Vector3.up;
+            case GrowthBiasType.Down:
+                return Vector3.down;
+        }
+    }
+
+
 }

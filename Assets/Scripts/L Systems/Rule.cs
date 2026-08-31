@@ -11,36 +11,67 @@ using Unity.VisualScripting.Antlr3.Runtime;
 using UnityEngine;
 using static Utilities;
 
-
+/**
+ * Klasa regu³ produkcyjnych L-systemów.
+ */
 [Serializable]
 public class Rule
 {
+    /**
+     * Zmienna typu string okreœlaj¹ca poprzednika dla regu³y, dostêpna w inspektorze.
+     */
     [Tooltip("e.g., 'F' for standard, or 'A(x,y)' for parametric")]
     public string predecessor;
 
+    /**
+     * Zmienna typu string okreœlaj¹ca kontekst dla regu³y, dostêpna w inspektorze.
+     */
     [Tooltip("e.g. AA_C, AF(>3,0)_C(<5), BB_, _X(=a, >1), or leave empty for no context. ALWAYS give " +
         "parameter comparison if symbol is parametric!")]
     public string userContext = "";
 
+    /**
+     * Zmienna typu string okreœlaj¹ca warunek dla regu³y, dostêpna w inspektorze.
+     */
     [Tooltip("If parametric, add comparison rule with parameter name, e.g. 'x < 2'")]
     public string condition = "";
 
-    // A successor dictionary for inspector UI
+    /**
+     * Struktura danych typu SerializedDictionary okreœlaj¹ca nastêpców dla regu³y, dostêpna w inspektorze.
+     */
     [Tooltip("e.g., 'F[+F]' or 'A(x*2, y+1)'")]
     [SerializedDictionary("Successor", "Probability")]
     public SerializedDictionary<string, int> userSuccessors;
 
-    // A list of successors to be referenced every time the rule fires
+    /**
+     * Lista do przechowywania nastêpców dla regu³y.
+     */
     private List<Successor> successors = new List<Successor>();
 
+    /**
+     * Struktura danych typu Tuple przechowuj¹ca delegat funkcji matematycznej dla warunku regu³y razem z indeksem
+     * parametru symbolu, którego delegat dotyczy.
+     */
     private (int index, Func<float, bool> func) compiledParamCondition;    // comparison with parameter index
 
+    /**
+     * Obiekt typu Context przechowuj¹cy skompilowany kontekst regu³y.
+     */
     private Context compiledContext;
 
-    private List<(char name, float value)> predecessorParams;   // is for passing the names of predecessor params together with current values
+    /**
+     * Lista przechowuj¹ca parametry poprzednika razem z ich nazwami.
+     */
+    private List<(char name, float value)> predecessorParams;   // for passing the names of predecessor params together with current values
 
+    /**
+     * Sta³a zmienna typu char okreœlaj¹ca nazwê parametru dla przypadków, gdzie jej brak.
+     */
     private const char noName = '#';
 
+    /**
+     * Metoda zarz¹dzaj¹ca kompilacj¹ poszczególnych elementów regu³y produkcyjnej.
+     */
     public void CompileRule()
     {
         successors = new List<Successor>();
@@ -58,7 +89,9 @@ public class Rule
         }
     }
     
-
+    /**
+     * Metoda kompiluj¹ca poprzenika z regu³y.
+     */
     private void CompilePredecessor()
     {
         int openBracket = predecessor.IndexOf('(');
@@ -76,7 +109,9 @@ public class Rule
 
     }
 
-
+    /**
+     * Metoda kompiluj¹ca warunek z regu³y.
+     */
     private void ReadCondition()
     {
         if(condition.Length > 0)
@@ -96,7 +131,11 @@ public class Rule
         }
     }
 
-
+    /**
+     * Metoda znajduj¹ca funkcjê delegata dla porównania parametru w warunku regu³y produkcyjnej.
+     * @param condition warunek w postaci zmiennej typu string.
+     * @return Func<float, bool> znaleziony delegat porównuj¹cy parametr.
+     */
     private Func<float, bool> EvaluateComparisonLambda(string condition)
     {
         Match match = Regex.Match(condition, @">=|<=|=|>|<|==");
@@ -129,6 +168,12 @@ public class Rule
         }
     }
 
+    /**
+     * Metoda kompiluj¹ca nastêpcê dla regu³y na podstawie ci¹gu znaków typu string i podanego 
+     * prawdopodobieñstwa wylosowania nastêpcy.
+     * @param pattern ci¹g znaków wpisany przez u¿ytkownika jako nastêpca.
+     * @param probability liczba przypisana do nastêpcy jako jego prawdopodobieñstwo
+     */
     private void CompileSuccessor(string pattern, int probability)
     {
         bool skipCharacters = false;
@@ -139,7 +184,6 @@ public class Rule
 
         foreach (char c in pattern)
         {
-            //Debug.Log("CHAR " + c);
             // If a previous loop was processing parameters, skip characters until closing bracket
             if (skipCharacters)
             {
@@ -155,10 +199,6 @@ public class Rule
 
                         // Extract the arguments inside the brackets (e.g., "x+1,y*2")
                         string[] tokens = symbolParamString.Split(',');
-                        /*Symbol s = successor.successorSymbols.Last();
-                        successor.successorSymbols.RemoveAt(successor.successorSymbols.Count - 1);
-                        s.parameters = new float[tokens.Length];
-                        successor.successorSymbols.Add(s);*/
                         SuccessorParser.ParseParamOperations(tokens, ref successor, parametricSymbolOccurrenceIndex, out char[] names);
 
                         successor.namedParams.Add(parametricSymbolOccurrenceIndex, names);
@@ -189,12 +229,18 @@ public class Rule
         successors.Add(successor);
     }
 
+    /**
+     * Metoda aplikuj¹ca regu³ê produkcyjn¹ dla danego symbolu.
+     * @param symbol symbol dla którego aplikowana jest regu³a.
+     * @param currentWord ca³oœæ ci¹gu symboli.
+     * @param symbolIndex indeks symbolu w ci¹gu znaków.
+     * @return List<Symbol> nastêpca w postaci listy nowych symboli.
+     */
     public List<Symbol> ApplyRule(Symbol symbol, List<Symbol> currentWord, int symbolIndex)
     {
         // If the first character of the predecessor is not the symbol's character, the rule doesn't apply
         if (!symbol.HasChar(predecessor[0]))
         {
-            //Debug.Log("The rule does not apply - Rule for " + predecessor);
             return new List<Symbol>() { };
         }
 
@@ -203,9 +249,6 @@ public class Rule
             // Assign parameter values to parameter names defined by the predecessor
             for (int i = 0; i < symbol.parameters.Length; i++)
             {
-                //Debug.Log("Symbol: " + symbol.character);
-                //predecessorParams[i] = (predecessorParams[i].name, symbol.parameters[i]);
-                //Debug.Log(" predecessorParams.count = " + predecessorParams.Count);
 
                 // If there are no predecessor parameters created yet, add the value with a "no name" name
                 if (predecessorParams.Count <= i) predecessorParams.Add((noName, symbol.parameters[i]));    // TODO: What?
@@ -255,17 +298,20 @@ public class Rule
         // If there are no parameters, return the weighted random successor
         else if (successors.Count > 0)
         {
-            //Debug.Log("No parameters, returning random successor");
             return GetWeightedRandomSuccessor().GetSymbolClones();
         }
         // If there is no successor, return a new list with just the symbol
         else
         {
-            //Debug.Log("No rules/successors, returning the symbol");
             return new List<Symbol>() { symbol.Clone() };
         }
     }
 
+    /**
+     * Metoda aplikuj¹ca operacje na parametrach dla danego symbolu poprzednika.
+     * @param currentSymbol symbol poprzednika.
+     * @return List<Symbol> nastêpca w postaci listy symboli.
+     */
     private List<Symbol> ApplySuccessorOperations(Symbol currentSymbol)
     {
         // Check probabilities - get weighted random
@@ -278,28 +324,25 @@ public class Rule
         return evaluatedSuccessor;
     }
 
-
+    /**
+     * Metoda zwracaj¹ca losowego nastêpcê z listy nastêpców na podstawie ich prawdopodobieñstw.
+     * @return Successor wylosowany nastêpca.
+     */
     private Successor GetWeightedRandomSuccessor()
     {
         int totalSum = userSuccessors.Values.Sum();
         int random = UnityEngine.Random.Range(1, totalSum + 1);
-        //Debug.Log("Total sum: " + totalSum +", Random: " + random);
         foreach (var s in successors)
         {
-            //Debug.Log(" -- successor " + Symbol.GetSymbolListString(s.successorSymbols) + ", prob = " + s.probability);
             // If random number is smaller than probability of the successor, return the successor
             if (random <= s.probability)
             {
-                //Debug.Log(random + " <= " + s.probability);
-                //Debug.Log("--> Successor chosen: " + Symbol.GetSymbolListString(s.successorSymbols));
                 return s;
             }
             // Otherwise reduce random value by the probability of the current successor and go to the next one
             random -= s.probability;
-            //Debug.Log("Decreasing random, random = " + random);
         }
         // If for any reason a successor was not chosen before, just return an empty list (no successors)
-        //Debug.LogWarning("No successors for the rule were chosen!");
         return new Successor();
     }
 }

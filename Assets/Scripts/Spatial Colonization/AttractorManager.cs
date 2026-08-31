@@ -4,36 +4,75 @@ using Unity.VisualScripting;
 using UnityEngine;
 using static Utilities;
 
+/**
+ * Klasa zarz¹dzaj¹ca roz³o¿eniem atraktorów dla algorytmu kolonizacji przestrzeni.
+ */
 public class AttractorManager : MonoBehaviour
 {
+    /**
+     * Zmienna typu bool definiuj¹ca widocznoœæ atraktorów na scenie, dostêpna w inspektorze.
+     */
     public bool showAttractors = true;
 
+    /**
+     * Zmienna typu int okreœlaj¹ca iloœæ pierwotnie wygenerowanych atraktorów, dostêpna w inspektorze.
+     */
     [Highlight(1, 0.8f, 0)]
     [Range(20, 5000)]
     public int attractorsAmount = 100;
 
+    /**
+     * Obiekt GameObject bêd¹cy referencj¹ do obiektu na scenie posiadaj¹cego siatkê, w której
+     * atraktory bêd¹ generowane.
+     */
     public GameObject attractorSpawnArea;
 
+    /**
+     * Obiekt Vector3 okreœlaj¹cy skalê przestrzeni, w której bêd¹ generowane atraktory, dostêpny w inspektorze.
+     */
     public Vector3 spawnAreaScale = Vector3.one;
 
+    /**
+     * Obiekt Vector3Int okreœlaj¹cy przesuniêcie przestrzeni, w której bêd¹ generowane atraktory, dostêpny w inspektorze.
+     */
     public Vector3Int spawnAreaOffset = Vector3Int.zero;
 
+    /**
+     * Zmienna typu int okreœlaj¹ca maksymalny promieñ wykrywania atraktorów, dostêpna w inspektorze.
+     */
     [Highlight(0.5f, 0.9f, 0.5f)]
     [Range(1, 100)]
     public int maxDistance = 10;
+
+    /**
+     * Zmienna typu int okreœlaj¹ca minimalny promieñ wykrywania atraktorów, dostêpna w inspektorze.
+     */
     [Highlight(0.5f, 0.9f, 0.5f)]
     [Range(1, 100)]
     public int minDistance = 2;
 
-
+    /**
+     * Zmienna typu int okreœlaj¹ca promieñ usuwania atraktorów, dostêpna w inspektorze.
+     */
     [Highlight(1, 0, 0.3f)]
     [Range(1, 100)]
     public int attractorKillRadius = 2;
 
+    /**
+     * Struktura danych typu HashSet, przechowuj¹ca atraktory w postaci pozycji wokseli.
+     */
     public HashSet<Vector3Int> attractors = new HashSet<Vector3Int>();
 
+    /**
+     * Zmienna typu byte okreœlaj¹ca identyfikator wokseli, jaki zostanie u¿yty w przypadku 
+     * wizualnego generowania atraktorów.
+     */
     byte attractorVoxelID = 6;
 
+    /**
+     * Metoda usuwaj¹ca atraktory, do których dotar³a struktura.
+     * @param nodes wêz³y struktury.
+     */
     public void RemoveReachedAttractors(HashSet<SCNode> nodes)
     {
         List<Vector3Int> newAttractors = new List<Vector3Int>(attractors);
@@ -42,17 +81,13 @@ public class AttractorManager : MonoBehaviour
             foreach (var node in nodes)
             {
                 float distance = Vector3Int.Distance(node.position, attractor);
-                //if (distance < 5)
-                //   print($"Distance <color=yellow>{node.position}</color> --> <color=lime>{attractor}</color> = {distance}");
 
                 if (distance < attractorKillRadius)
                 {
                     newAttractors.Remove(attractor);
-                    //print("<color=red>Removed attractor at " + attractor + "</color>");
                     if (showAttractors)
-                        WorldManager.Instance.container[attractor] = new Voxel()
+                        MainManager.Instance.container[attractor] = new Voxel()
                         {
-                            //id = 1
                             id = 2
                         };
                 }
@@ -61,6 +96,9 @@ public class AttractorManager : MonoBehaviour
         attractors = new HashSet<Vector3Int>(newAttractors);
     }
 
+    /**
+     * Metoda generuj¹ca atraktory.
+     */
     public void GenerateAttractors()
     {
         Vector3Int meshBounds;
@@ -84,9 +122,6 @@ public class AttractorManager : MonoBehaviour
             meshBounds = new Vector3Int(100, 50, 100);
             spawnArea.Calculate(meshBounds, Vector3Int.zero);
         }
-        /*int smallDist = 0;
-        int medDist = 0;
-        int bigDist = 0;*/
         for (int i = 0; i < attractorsAmount; i++)
         {
             Vector3Int randPos = new Vector3Int(
@@ -94,43 +129,31 @@ public class AttractorManager : MonoBehaviour
                 Random.Range(spawnArea.yBounds.from, spawnArea.yBounds.to),
                 Random.Range(spawnArea.zBounds.from, spawnArea.zBounds.to)
                 );
-            /*Vector3Int randPos = new Vector3Int(
-                Random.Range(-meshBounds.x, meshBounds.x),
-                Random.Range(0, meshBounds.y*2),
-                Random.Range(-meshBounds.z, meshBounds.z)
-                );
-            randPos += spawnAreaOffset;*/
             if (IsPointInCollider(meshCollider, randPos))
             {
-                //calc distance from center
+                // calc distance from center
                 float distance = Vector3.Distance(randPos, meshCollider.bounds.center);
 
                 // the futher the distance the better chance for adding the attractor
                 float randDistance = Vector3.Distance(meshCollider.bounds.center + 
                     Random.insideUnitSphere * meshCollider.bounds.extents.x, meshCollider.bounds.center);
 
-                /*if (distance > randDistance)
-                {
-                    if (distance <= 77) smallDist++;
-                    if (distance <= 97 && distance > 77) medDist++;
-                    if (distance > 97) bigDist++;
-                    attractors.Add(randPos);
-                }*/
                 attractors.Add(randPos);
             }
 
         }
         attractorSpawnArea.GetComponent<MeshCollider>().enabled = false;
-        //Debug.Log($"SMALL: {smallDist} -- MEDIUM: {medDist} -- BIG: {bigDist}");
     }
 
-
+    /**
+     * Metoda dodaj¹ca woksele wizualizuj¹ce atraktory do sceny.
+     */
     public void ShowAttractors()
     {
         if (showAttractors)
             foreach (var attractor in attractors)
             {
-                WorldManager.Instance.container[attractor] = new Voxel()
+                MainManager.Instance.container[attractor] = new Voxel()
                 {
                     id = attractorVoxelID
                 };

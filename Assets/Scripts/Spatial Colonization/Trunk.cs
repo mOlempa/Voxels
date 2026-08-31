@@ -5,26 +5,70 @@ using static Utilities;
 using static Constants;
 using UnityEditor.Experimental.GraphView;
 
+/**
+ * Klasa odpowiedzialna za generowanie pnia roœliny dla modelu algorytmu kolonizacji przestrzeni.
+ */
 public class Trunk : MonoBehaviour
 {
+    /**
+     * Zmienna typu int okreœlaj¹ca liczbê wêz³ów pnia, dostêpna w inspektorze.
+     */
     [Range(1, 50)]
     public int nodesAmount = 3;
+
+    /**
+     * Zmienna typu int okreœlaj¹ca d³ugoœæ segmentów pnia, dostêpna w inspektorze.
+     */
     [Range(1, 50)]
     public int segmentLength = 10;
+
+    /**
+     * Zmienna typu int okreœlaj¹ca gruboœæ pierwszego segmentu pnia, dostêpna w inspektorze.
+     */
     [Range(1, 20)]
     public int startingThickness = 5;
+
+    /**
+     * Zmienna typu float okreœlaj¹ca zwiêkszenie gruboœci segmentów pnia po ka¿dej iteracji, dostêpna w inspektorze.
+     */
     [Range(-1, 1)]
     public float thicknessIncrease = 1;
+
+    /**
+     * Zmienna typu float okreœlaj¹ca na jakiej minimalnej wysokoœci pnia zaczynaj¹ siê generowaæ ga³êzie, 
+     * dostêpna w inspektorze.
+     */
     [Range(0, 1)]
     public float minBranchHeight = 0;
+
+    /**
+     * Zmienna typu float okreœlaj¹ca na jakiej maksymalnej wysokoœci pnia zaczynaj¹ siê generowaæ ga³êzie, 
+     * dostêpna w inspektorze.
+     */
     [Range(0, 1)]
     public float maxBranchHeight = 1;
+
+    /**
+     * Zmienna typu float okreœlaj¹ca si³ê preferowanego kierunku wzrostu, dostêpna w inspektorze.
+     */
     [Range(0, 1)]
     public float biasStrength = 0;
 
+    /**
+     * Zmienna typu float okreœlaj¹ca niezaokr¹glon¹ gruboœæ ga³êzi.
+     */
     float unroundedCurrentThickness = 1;
+
+    /**
+     * Lista stworzonych wêz³ów pnia.
+     */
     public List<SCNode> nodes;
 
+    /**
+     * Metoda zwracaj¹ca losowy kierunek na bazie po³¹czenia obecnego i preferowanego kierunku rozrostu.
+     * @param currentDir obecny kierunek segmentu.
+     * @return Vector3 zwracany losowy kierunek.
+     */
     public Vector3 GetBiasedRandomDir(Vector3 currentDir)
     {
         Vector3 randomDir = Random.insideUnitSphere;
@@ -32,6 +76,11 @@ public class Trunk : MonoBehaviour
         return biasedDirectionVec.normalized;
     }
 
+    /**
+     * Metoda generuj¹ca pieñ struktury.
+     * @param startingPoint punkt startowy pnia.
+     * @return List lista wêz³ów pnia.
+     */
     public List<SCNode> GenerateTrunk(Vector3Int startingPoint)
     {
         List<SCNode> nodes = new List<SCNode>()
@@ -76,7 +125,6 @@ public class Trunk : MonoBehaviour
         List<SCNode> branchNodes = new List<SCNode>();
         for(int i = indexA; i < indexB; i++)
         {
-            //print("Adding branch node at index " + i + " with trunk thickness " + nodes[i].thickness);
             branchNodes.Add(nodes[i]);
         }
 
@@ -84,14 +132,17 @@ public class Trunk : MonoBehaviour
 
     }
 
+    /**
+     * Metoda generuj¹ca woksele na podstawie pozycji.
+     * @param positions pozycja do wygenerowania wokseli.
+     */
     void GenerateVoxels(List<Vector3Int> positions)
     {
         foreach (var pos in positions)
         {
-            if (WorldManager.Instance.container[pos].id == 2) continue;
-            WorldManager.Instance.container[pos] = new Voxel()
+            if (MainManager.Instance.container[pos].id == 2) continue;
+            MainManager.Instance.container[pos] = new Voxel()
             {
-                //id = 1
                 id = 3
             };
         }

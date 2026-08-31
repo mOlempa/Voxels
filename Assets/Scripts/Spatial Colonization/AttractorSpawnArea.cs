@@ -5,16 +5,42 @@ using Unity.VisualScripting;
 using UnityEditor;
 using UnityEngine;
 
+/**
+ * Klasa reprezentuj¹ca przestrzeñ generowania atraktorów.
+ */
 public class AttractorSpawnArea : MonoBehaviour
 {
+    /**
+     * Zmienna typu int, której zmiana wywo³uje zaktualizowanie widoku w inspektorze.
+     */
     [Range(0, 100)]
     public int refreshCollider;
+
+    /**
+     * Referencja do obiektu siatki fizycznej (kolidera) siatki ograniczaj¹cej przestrzeñ generowania atraktorów.
+     */
     MeshCollider meshCollider;
 
+    /**
+     * Zmienna typu Tuple przechowuj¹ca zakres siatki miêdzy dwoma punktami w osi X.
+     */
     [HideInInspector] public (int from, int to) xBounds;
+
+    /**
+     * Zmienna typu Tuple przechowuj¹ca zakres siatki miêdzy dwoma punktami w osi Y.
+     */
     [HideInInspector] public (int from, int to) yBounds;
+
+    /**
+     * Zmienna typu Tuple przechowuj¹ca zakres siatki miêdzy dwoma punktami w osi Z.
+     */
     [HideInInspector] public (int from, int to) zBounds;
     
+    /**
+     * Metoda obliczaj¹ca zakres siatki miêdzy punktami na trzech osiach dla zmiennych klasy.
+     * @param bounds zakres siatki w wokselach.
+     * @param offset przesuniêcie siatki od punktu (0,0,0) na scenie.
+     */
     public void Calculate(Vector3Int bounds, Vector3Int offset)
     {
 
@@ -25,9 +51,11 @@ public class AttractorSpawnArea : MonoBehaviour
 
 
 #if UNITY_EDITOR
+    /**
+     * Metoda aktualizuj¹ca siatkê po zmianach w zmiennych klasy.
+     */
     private void OnValidate()
     {
-        //print("Updating mesh");
         if (TryGetComponent(out MeshFilter meshFilter))
         {
             if(meshFilter.sharedMesh != null)
@@ -41,28 +69,4 @@ public class AttractorSpawnArea : MonoBehaviour
     }
 #endif
 
-}
-
-
-public class HighlightAttribute : PropertyAttribute
-{
-    public Color col;
-
-    public HighlightAttribute(float r = 1, float g = 0, float b = 0)
-    {
-        this.col = new Color(r, g, b, 1);
-    }
-}
-[CustomPropertyDrawer(typeof(HighlightAttribute))]
-public class HighlightPropertyDrawer : PropertyDrawer
-{
-    public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
-    {
-        var col = (attribute as HighlightAttribute).col;
-        Color prev = GUI.color;
-        GUI.color = col;
-        EditorGUI.PropertyField(position, property, label, true);
-        GUI.color = prev;
-
-    }
 }
