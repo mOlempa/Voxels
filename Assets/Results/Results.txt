@@ -1,0 +1,2 @@
+Czas przygotowania | Czas budowy struktury | Średni czas zarządzania kolizją | Liczba kolizji | Liczba węzłów | Całościowa liczba wokseli | Liczba wokseli struktury | Czas generowania siatki | Wymiar siatki w osi X | Wymiar siatki w osi Y | Wymiar siatki w osi Z | Objętość wokselowa siatki | Rodzaj algorytmu | Występowanie przeszkody
+
