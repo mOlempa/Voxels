@@ -152,7 +152,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e3598f1bd3344604284f97ee8485e72b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  usedAlgorithm: 1
+  usedAlgorithm: 0
   plantMaterial: {fileID: 2100000, guid: eac297829e3a833498945701a7d9b9c1, type: 2}
   lSystemGenerator: {fileID: 1659058146}
   structureGenerator: {fileID: 1659058148}
