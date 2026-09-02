@@ -9,28 +9,36 @@ using System.Text;
 using UnityEngine;
 using UnityEngine.TextCore.Text;
 
+/**
+ * Klasa reprezentuj¹ca pojedynczy symbol w algorytmie L-systemów.
+ */
 [Serializable]
 public struct Symbol
 {
+    /**
+     * Zmienna typu string okreœlaj¹ca nazwê symbolu.
+     */
     [HideInInspector] public string name;
 
+    /**
+     * Zmienna typu char okreœlaj¹ca znak symbolu.
+     */
     [SerializeField] public char character;
+
+    /**
+     * Zmienna typu Action okreœlaj¹ca akcjê symbolu do interpretacji podczas budowy struktury.
+     */
     [SerializeField] public Action action;
 
-    /*[SerializedDictionary("Symbol", "Action")]
-    public SerializedDictionary<char, Action> stringSuccessors;*/
-
-    //[HideInInspector] public Dictionary<List<Symbol>, int> successors;
-    //[SerializeField] public Parameter[] parameters;
-
+    /**
+     * Tablica wartoœci typu float przechowuj¹ca wartoœci parametrów symbolu.
+     */
     [HideInInspector] public float[] parameters;
 
 
-    /*[SerializedDictionary("Name", "Value")]
-    [SerializeField] public SerializedDictionary<char, float> parameters;*/
-    //public Dictionary<char, float> parameters;
-
-    // Constructor for Standard Symbol
+    /**
+     * Konstruktor obiektu klasy dla standardowego symbolu.
+     */
     public Symbol(char _character)
     {
         name = _character.ToString();
@@ -39,7 +47,9 @@ public struct Symbol
         action = Action.None;
     }
 
-    // Constructor for Parametric Symbol
+    /**
+     * Konstruktor obiektu klasy dla parametrycznego symbolu.
+     */
     public Symbol(char _character, float[] _parameters)
     {
         character = _character;
@@ -48,11 +58,19 @@ public struct Symbol
         name = _character.ToString();
     }
 
+
+    /**
+     * Metoda sprawdzaj¹ca czy symbol ma dany znak.
+     */
     public bool HasChar(char c)
     {
         return character == c;
     }
 
+    /**
+     * Metoda klonuj¹ca symbol.
+     * @return Symbol kopia symbolu.
+     */
     public Symbol Clone()
     {
         return new Symbol
@@ -63,6 +81,10 @@ public struct Symbol
         };
     }
 
+    /**
+     * Metoda zwracaj¹ca symbol jako zmienna typu string ³¹cznie z parametrami.
+     * @return string symbol jako ci¹g znaków.
+     */
     public string GetSymbolString()
     {
         StringBuilder s = new StringBuilder("");
@@ -84,8 +106,15 @@ public struct Symbol
         }
     }
 
+    /**
+     * Metoda sprawdzaj¹ca czy symbol jest parametryczny.
+     */
     public bool IsParametric => parameters != null && parameters.Length > 0;
 
+    /**
+     * Metoda przypisuj¹ca wartoœci z ci¹gu znaków string parametrom symbolu.
+     * @param paramStr ci¹g znaków z wartoœciami parametrów do zapisania.
+     */
     public void AssignParameterValues(string paramStr)
     {
         string numberStr = "";
@@ -112,7 +141,11 @@ public struct Symbol
 
     }
 
-
+    /**
+     * Metoda zwracaj¹ca listê symboli w postaci ci¹gu znaków string.
+     * @param list lista symboli do przekonwertowania.
+     * @return string przekonwertowana lista.
+     */
     public static string GetSymbolListString(List<Symbol> list)
     {
         StringBuilder str = new StringBuilder("");
@@ -122,11 +155,5 @@ public struct Symbol
         }
         return str.ToString();
 
-        /*string str = "";
-        foreach (Symbol s in list)
-        {
-            str += s.GetSymbolString();
-        }
-        return str;*/
     }
 }

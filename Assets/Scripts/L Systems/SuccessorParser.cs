@@ -6,9 +6,19 @@ using System.Linq.Expressions;
 using System.Text.RegularExpressions;
 using UnityEngine;
 
+/**
+ * Klasa zawieraj¹ca metody przek³adania ci¹gu znaków wpisanych przez u¿ytkownika na delegatów 
+ * operacji matematycznych na parametrach symboli L-systemu.
+ */
 public class SuccessorParser
 {
-    
+    /**
+     * Metoda konwertuj¹ca ci¹g znaków na delegatów operacji matematycznych na parametrach symbolu.
+     * @param tokens parametry przekazane w postaci tablicy zmiennych string.
+     * @param successor nastêpca przekazany jako referencja, w ramach modyfikacji jego listy delegatów.
+     * @param parametricSymbolOccurrenceIndex indeks symbolu parametrycznego.
+     * @param paramNames zwracana tablica nazw parametrów.
+     */
     public static void ParseParamOperations(string[] tokens, ref Successor successor,
         int parametricSymbolOccurrenceIndex, out char[] paramNames)
     {
@@ -78,14 +88,37 @@ public class SuccessorParser
         return;
     }
 
-    // Inner helper class to parse the mathematical string grammar
+    /**
+     * Pomocnicza klasa wewnêtrzna z metodami konwertuj¹cymi ci¹gi znaków typu string na matematyczne wyra¿enia.
+     */
     private class MathExpressionParser
     {
+        /**
+         * Zmienna typu string przechowuj¹ca wyra¿enie matematyczne w postaci ci¹gu znaków,
+         */
         private readonly string _expr;
+
+        /**
+         * Zmienna typu char przechowuj¹ca nazwê parametru symbolu.
+         */
         private readonly char _paramChar;
+
+        /**
+         * Obiekt typu ParameterExpression przechowuj¹cy wyra¿enie matematyczne.
+         */
         private readonly ParameterExpression _paramExpr;
+
+        /**
+         * Zmienna typu int przechowuj¹ca pozycjê obecnie sprawdzanego znaku.
+         */
         private int _pos;
 
+        /**
+         * Konstruktor klasy.
+         * @param expr wyra¿enie matematyczne w postaci ci¹gu znaków.
+         * @param paramChar nazwa parametru symbolu.
+         * @param paramExpr obiekt przechowuj¹cy wyra¿enie matematyczne.
+         */
         public MathExpressionParser(string expr, char paramChar, ParameterExpression paramExpr)
         {
             _expr = expr.Replace(" ", "");
@@ -94,12 +127,19 @@ public class SuccessorParser
             _pos = 0;
         }
 
+        /**
+         * Metoda zwracaj¹ca parsowane wyra¿enie matematyczne.
+         * @return Expression wyra¿enie.
+         */
         public Expression Parse()
         {
             return ParseExpression();
         }
 
-        // Addition and Subtraction
+        /**
+         * Metoda parsuj¹ca wyra¿enie matematyczne obejmuj¹ce dodawanie i odejmowanie.
+         * @return Expression wyra¿enie w postaci obiektu.
+         */
         private Expression ParseExpression()
         {
             Expression left = ParseTerm();
@@ -117,7 +157,10 @@ public class SuccessorParser
             return left;
         }
 
-        // Multiplication and Division
+        /**
+         * Metoda parsuj¹ca wyra¿enie matematyczne obejmuj¹ce mno¿enie i dzielenie.
+         * @return Expression wyra¿enie w postaci obiektu.
+         */
         private Expression ParseTerm()
         {
             Expression left = ParseFactor();
@@ -135,7 +178,10 @@ public class SuccessorParser
             return left;
         }
 
-        // Exponents (^)
+        /**
+         * Metoda parsuj¹ca wyra¿enie matematyczne obejmuj¹ce wyk³adniki.
+         * @return Expression wyra¿enie w postaci obiektu.
+         */
         private Expression ParseFactor()
         {
             Expression left = ParsePrimary();
@@ -155,7 +201,10 @@ public class SuccessorParser
             return left;
         }
 
-        // Variables, constants, unary signs, and parentheses
+        /**
+         * Metoda parsuj¹ca wyra¿enie matematyczne obejmuj¹ce zmienne, sta³e, znaki jednoargumentowe i nawiasy
+         * @return Expression wyra¿enie w postaci obiektu.
+         */
         private Expression ParsePrimary()
         {
             if (_pos >= _expr.Length) throw new Exception("Unexpected end of expression.");
